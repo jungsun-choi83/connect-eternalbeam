@@ -150,14 +150,6 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
             <p className="fade-up mt-8 whitespace-pre-line text-center font-serif text-[1.02rem] leading-relaxed text-white/78">
               {'막힘 없이 바로 간직하거나,\n천천히 계속 받아볼 수 있어요'}
             </p>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              placeholder="다시 만날 이메일"
-              className="mt-6 w-full border border-white/15 bg-black/50 px-4 py-3 font-sans text-sm text-white/90 outline-none focus:border-[#D4AF37]/45"
-            />
             <div className="mt-6 rounded-md border border-[#D4AF37]/25 bg-black/45 px-4 py-4">
               <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-[#D4AF37]/70">Option 1</p>
               <p className="mt-2 font-serif text-[1.1rem] text-[#D4AF37]">이 메시지를 눈앞에서 만나기</p>
