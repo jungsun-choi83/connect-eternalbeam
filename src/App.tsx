@@ -5,6 +5,7 @@ import { MobileEmotionFunnel } from './components/MobileEmotionFunnel'
 import { SoftArchivePrompt } from './components/anonymous/SoftArchivePrompt'
 import { saveConnectLetter } from './lib/connectLettersApi'
 import { resolveActiveAnonId } from './lib/anonymousSession'
+import { startTossUpsellCheckout } from './lib/tossCheckout'
 import {
   type SoulTracePayload,
   syncSoulTraceFromSearchParams,
@@ -83,12 +84,18 @@ function Landing() {
     navigate(`/subscription?email=${encodeURIComponent(email)}`)
   }
 
+  const handleUpgrade = async (email: string) => {
+    await trySaveSoulLetter()
+    await startTossUpsellCheckout(email)
+  }
+
   return (
     <div className="min-h-dvh text-white">
       <LetterSavedConfirmation visible={letterSaved} />
       <MobileEmotionFunnel
         payload={soul}
         onStartSubscription={handleSubscriptionOnly}
+        onUpgrade={handleUpgrade}
       />
       <SoftArchivePrompt anonId={activeAnonId} />
     </div>

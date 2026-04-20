@@ -5,6 +5,7 @@ import type { SoulTracePayload } from '../lib/soulTraceIngest'
 type Props = {
   payload: SoulTracePayload
   onStartSubscription?: (email: string) => void | Promise<void>
+  onUpgrade?: (email: string) => void | Promise<void>
 }
 
 const fadeIn = {
@@ -15,7 +16,7 @@ const fadeIn = {
 
 const SLIDE_COUNT = 2
 
-export function MobileEmotionFunnel({ payload, onStartSubscription }: Props) {
+export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }: Props) {
   const [activeSlide, setActiveSlide] = useState(0)
   const [touchStartX, setTouchStartX] = useState<number | null>(null)
   const [email, setEmail] = useState(payload.email ?? '')
@@ -78,6 +79,14 @@ export function MobileEmotionFunnel({ payload, onStartSubscription }: Props) {
     setConfirmOpen(false)
   }
 
+  const submitUpgrade = async () => {
+    if (!email.trim()) {
+      window.alert('구매 진행을 위해 이메일을 남겨 주세요.')
+      return
+    }
+    await onUpgrade?.(email.trim())
+  }
+
   return (
     <main className="aurora-page min-h-dvh overflow-hidden bg-black text-white">
       <div className="pointer-events-none absolute left-0 right-0 top-5 z-20 flex items-center justify-center gap-2">
@@ -136,12 +145,11 @@ export function MobileEmotionFunnel({ payload, onStartSubscription }: Props) {
               <span className="sparkle s4" />
             </div>
             <h2 className="aurora-title whitespace-pre-line text-center font-serif text-[1.75rem] leading-snug sm:text-[2rem]">
-              아이의 메시지를{'\n'}계속 받아보시겠어요?
+              이제, 원하는 방식으로{'\n'}이어갈 수 있어요
             </h2>
-            <p className="fade-up mt-10 whitespace-pre-line text-center font-serif text-[1.12rem] leading-relaxed text-white/86">
-              {'하루에 한 번,\n아이의 마음이 도착합니다'}
+            <p className="fade-up mt-8 whitespace-pre-line text-center font-serif text-[1.02rem] leading-relaxed text-white/78">
+              {'막힘 없이 바로 간직하거나,\n천천히 계속 받아볼 수 있어요'}
             </p>
-            <p className="mt-8 text-center font-serif text-3xl tracking-tight text-[#D4AF37]">₩5,900 / 월</p>
             <input
               type="email"
               value={email}
@@ -150,13 +158,28 @@ export function MobileEmotionFunnel({ payload, onStartSubscription }: Props) {
               placeholder="다시 만날 이메일"
               className="mt-6 w-full border border-white/15 bg-black/50 px-4 py-3 font-sans text-sm text-white/90 outline-none focus:border-[#D4AF37]/45"
             />
-            <div className="mt-auto space-y-2">
+            <div className="mt-6 rounded-md border border-[#D4AF37]/25 bg-black/45 px-4 py-4">
+              <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-[#D4AF37]/70">Option 1</p>
+              <p className="mt-2 font-serif text-[1.1rem] text-[#D4AF37]">이 메시지를 눈앞에서 만나기</p>
+              <p className="mt-2 font-sans text-sm text-white/65">이잉크 기반 아크릴 명패로 지금 바로 주문</p>
+              <button
+                type="button"
+                onClick={submitUpgrade}
+                className="aurora-button mt-4 w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 px-5 py-3.5 font-serif text-[1.02rem] tracking-wide text-[#D4AF37]"
+              >
+                이 메시지를 눈앞에서 만나기
+              </button>
+            </div>
+            <div className="mt-4 rounded-md border border-white/12 bg-black/30 px-4 py-4">
+              <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-white/45">Option 2</p>
+              <p className="mt-2 font-serif text-[1.02rem] text-white/78">아이의 메시지를 계속 받아보기</p>
+              <p className="mt-1 font-sans text-xs text-white/50">₩5,900 / 월</p>
               <button
                 type="button"
                 onClick={requestSubscriptionConfirm}
-                className="aurora-button w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 px-5 py-4 font-serif text-[1.05rem] tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/18"
+                className="mt-3 w-full border border-white/20 bg-black/35 px-5 py-3.5 font-serif text-[0.98rem] tracking-wide text-white/75 transition hover:border-white/35 hover:bg-black/45"
               >
-                지금 시작하기
+                아이의 메시지를 계속 받아보기
               </button>
             </div>
           </motion.div>
