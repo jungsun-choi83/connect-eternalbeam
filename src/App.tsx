@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import { LetterSavedConfirmation } from './components/LetterSavedConfirmation'
 import { MobileEmotionFunnel } from './components/MobileEmotionFunnel'
 import { SoftArchivePrompt } from './components/anonymous/SoftArchivePrompt'
 import { saveConnectLetter } from './lib/connectLettersApi'
 import { resolveActiveAnonId } from './lib/anonymousSession'
-import { startTossTestCheckout } from './lib/tossCheckout'
 import {
   type SoulTracePayload,
   syncSoulTraceFromSearchParams,
@@ -17,11 +16,13 @@ import { OAuthKakaoCallbackPage } from './pages/OAuthKakaoCallback'
 import { QrToolPage } from './pages/QrToolPage'
 import { RegisterDevicePage } from './pages/RegisterDevicePage'
 import { RegisterSerialPage } from './pages/RegisterSerialPage'
+import { SubscriptionEmotionPage } from './pages/SubscriptionEmotionPage'
 import { TossPaymentFailPage } from './pages/TossPaymentFailPage'
 import { TossPaymentSuccessPage } from './pages/TossPaymentSuccessPage'
 
 function Landing() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const activeAnonId = resolveActiveAnonId(searchParams)
   const [soul, setSoul] = useState<SoulTracePayload>(() => {
     if (typeof window === 'undefined') {
@@ -83,11 +84,7 @@ function Landing() {
 
   const handleSubscriptionOnly = async (email: string) => {
     await trySaveSoulLetter()
-    try {
-      await startTossTestCheckout(email)
-    } catch (e) {
-      window.alert(e instanceof Error ? e.message : '토스 결제를 시작하지 못했습니다.')
-    }
+    navigate(`/subscription?email=${encodeURIComponent(email)}`)
   }
 
   return (
@@ -117,6 +114,7 @@ function App() {
         <Route path="/oauth/kakao/callback" element={<OAuthKakaoCallbackPage />} />
         <Route path="/payments/toss/success" element={<TossPaymentSuccessPage />} />
         <Route path="/payments/toss/fail" element={<TossPaymentFailPage />} />
+        <Route path="/subscription" element={<SubscriptionEmotionPage />} />
         <Route path="/tools/qr/:deviceSn" element={<QrToolPage />} />
       </Routes>
     </BrowserRouter>

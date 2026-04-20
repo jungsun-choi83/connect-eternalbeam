@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState, type TouchEvent } from 'react'
 import type { SoulTracePayload } from '../lib/soulTraceIngest'
 
@@ -9,9 +9,9 @@ type Props = {
 }
 
 const fadeIn = {
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
 }
 
 const SLIDE_COUNT = 3
@@ -20,11 +20,22 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
   const [activeSlide, setActiveSlide] = useState(0)
   const [touchStartX, setTouchStartX] = useState<number | null>(null)
   const [email, setEmail] = useState(payload.email ?? '')
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [videoFailed, setVideoFailed] = useState(false)
   const sliderRef = useRef<HTMLDivElement | null>(null)
+  const confirmTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     setEmail(payload.email ?? '')
   }, [payload.email])
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current !== null) {
+        window.clearTimeout(confirmTimerRef.current)
+      }
+    }
+  }, [])
 
   const letter = payload.letter?.trim() || '아직 도착한 편지가 없습니다.'
 
@@ -50,12 +61,23 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
     setTouchStartX(null)
   }
 
-  const submitSubscription = async () => {
+  const requestSubscriptionConfirm = () => {
     if (!email.trim()) {
       window.alert('다시 이어가기 위한 이메일을 남겨 주세요.')
       return
     }
+    if (confirmTimerRef.current !== null) {
+      window.clearTimeout(confirmTimerRef.current)
+    }
+    confirmTimerRef.current = window.setTimeout(() => {
+      setConfirmOpen(true)
+      confirmTimerRef.current = null
+    }, 300)
+  }
+
+  const submitSubscription = async () => {
     await onStartSubscription?.(email.trim())
+    setConfirmOpen(false)
   }
 
   const submitUpgrade = async () => {
@@ -131,7 +153,7 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
             <div className="mt-auto space-y-2">
               <button
                 type="button"
-                onClick={submitSubscription}
+                onClick={requestSubscriptionConfirm}
                 className="w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 px-5 py-4 font-serif text-[1.05rem] tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/18"
               >
                 지금 시작하기
@@ -147,34 +169,130 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
           </motion.div>
         </section>
 
-        <section className="flex h-dvh w-full shrink-0 flex-col px-6 pb-8 pt-12 sm:px-10">
+        <section className="relative flex h-dvh w-full shrink-0 flex-col overflow-hidden px-6 pb-8 pt-12 sm:px-10">
+          {!videoFailed && (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              onError={() => setVideoFailed(true)}
+              className="absolute inset-0 h-full w-full object-cover opacity-45"
+            >
+              <source src="/videos/plaque-preview.mp4" type="video/mp4" />
+            </video>
+          )}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.2),rgba(0,0,0,0.82)_70%)]" />
           <motion.div key={`s3-${activeSlide}`} {...fadeIn} className="flex h-full flex-col">
-            <h2 className="text-center font-serif text-[1.65rem] leading-snug text-[#D4AF37] sm:text-[1.9rem]">
-              그 메시지를 눈앞에서 만나는 방법
-            </h2>
-            <p className="mt-10 whitespace-pre-line text-center font-serif text-[1.12rem] leading-relaxed text-white/86">
-              {'아이의 편지를\n빛으로 간직하세요\n\n시간이 지나도 사라지지 않도록'}
-            </p>
-            <p className="mt-10 text-center font-serif text-3xl tracking-tight text-[#D4AF37]">₩000,000</p>
-            <div className="mt-auto space-y-2">
+            <div className="relative z-10 flex h-full flex-col">
+              <div className="space-y-2">
+                {['그리고,', '그 메시지를 남기고 싶다면'].map((line, i) => (
+                  <motion.p
+                    key={line}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.6,
+                      delay: 0.12 + i * 0.2,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    className="text-center font-serif text-[1.02rem] leading-relaxed text-[#D4AF37]/88"
+                  >
+                    {line}
+                  </motion.p>
+                ))}
+              </div>
+
+              <h2 className="mt-7 whitespace-pre-line text-center font-serif text-[1.65rem] leading-snug text-[#D4AF37] sm:text-[1.9rem]">
+                {'아이의 메시지가\n빛으로 도착하는 순간'}
+              </h2>
+
+              {['아이의 편지를', '빛으로 간직하세요', '', '시간이 지나도', '사라지지 않도록'].map(
+                (line, i) => (
+                  <motion.p
+                    key={`body-${i}-${line || 'gap'}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.6,
+                      delay: 0.22 + i * 0.2,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    className={`text-center font-serif text-[1.12rem] leading-relaxed text-white/90 ${
+                      line ? 'mt-1' : 'mt-3'
+                    }`}
+                  >
+                    {line || '\u00A0'}
+                  </motion.p>
+                ),
+              )}
+
+              <ul className="mt-8 space-y-2 font-sans text-sm leading-relaxed text-white/78">
+                <li>빛의 편지 디스플레이</li>
+                <li>전용 케이스</li>
+                <li>1년 동안 이어지는 메시지</li>
+              </ul>
+
+              <p className="mt-8 text-center font-serif text-3xl tracking-tight text-[#D4AF37]">₩000,000</p>
+
+              <div className="mt-auto space-y-2">
               <button
                 type="button"
                 onClick={submitUpgrade}
                 className="w-full border border-white/15 bg-transparent px-5 py-4 font-serif text-[1.05rem] tracking-wide text-white/80 transition hover:border-white/30 hover:bg-white/5"
               >
-                이 순간을 남기기
+                  이 편지를 빛으로 간직하기
               </button>
-              <button
-                type="button"
-                onClick={goPrev}
-                className="w-full py-2 text-center font-sans text-xs tracking-wide text-white/45"
-              >
-                이전 보기
-              </button>
+              </div>
             </div>
           </motion.div>
         </section>
       </div>
+
+      <AnimatePresence>
+        {confirmOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 p-4 sm:items-center"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 22 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 18 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md border border-[#D4AF37]/30 bg-black/95 px-6 py-6 text-white"
+            >
+              <h3 className="text-center font-serif text-xl text-[#D4AF37]">
+                아이의 메시지를 계속 받아보시겠어요?
+              </h3>
+              <ul className="mt-5 space-y-2 font-sans text-sm leading-relaxed text-white/70">
+                <li>- 하루에 한 번, 혹은 어느 순간</li>
+                <li>- 아이의 마음이 조용히 도착합니다</li>
+                <li>- 시간이 지나도 이어지는 편지</li>
+              </ul>
+              <div className="mt-6 space-y-2">
+                <button
+                  type="button"
+                  onClick={submitSubscription}
+                  className="w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 py-3 font-serif text-[#D4AF37]"
+                >
+                  지금 시작하기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(false)}
+                  className="w-full border border-white/15 bg-transparent py-3 font-sans text-sm text-white/75"
+                >
+                  조금 더 볼게요
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   )
 }

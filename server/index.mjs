@@ -29,6 +29,7 @@ import {
   randomUUID,
 } from './authUtil.mjs'
 import { insertConnectLetter, listConnectLettersByDevice } from './lib/supabaseConnectLetters.mjs'
+import { generatePetMessage } from './lib/petMessageGenerator.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const distDir = path.join(__dirname, '..', 'dist')
@@ -670,6 +671,55 @@ app.get('/api/connect/letters', async (req, res) => {
     return res.status(500).json({ error: out.error })
   }
   res.json({ letters: out.letters })
+})
+
+/**
+ * 아이 메시지 생성 API
+ * POST /generate-message
+ * body: {
+ *   time, emotion, memory, user_action,
+ *   character: { personality, tone }
+ * }
+ */
+app.post('/generate-message', (req, res) => {
+  const body = req.body ?? {}
+  const input = {
+    time: body.time,
+    emotion: body.emotion,
+    memory: body.memory,
+    user_action: body.user_action,
+    character: {
+      personality: body.character?.personality,
+      tone: body.character?.tone,
+    },
+  }
+  const out = generatePetMessage(input)
+  res.json({
+    message: out.message,
+    resolved: out.resolved,
+    system_prompt: out.system_prompt,
+  })
+})
+
+// API prefix 버전도 같은 동작 제공
+app.post('/api/generate-message', (req, res) => {
+  const body = req.body ?? {}
+  const input = {
+    time: body.time,
+    emotion: body.emotion,
+    memory: body.memory,
+    user_action: body.user_action,
+    character: {
+      personality: body.character?.personality,
+      tone: body.character?.tone,
+    },
+  }
+  const out = generatePetMessage(input)
+  res.json({
+    message: out.message,
+    resolved: out.resolved,
+    system_prompt: out.system_prompt,
+  })
 })
 
 app.get('/api/health', (_req, res) => {
