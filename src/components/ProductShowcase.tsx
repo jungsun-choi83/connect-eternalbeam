@@ -33,6 +33,9 @@ export function ProductShowcase() {
             소울트레이스에서 나눈 마음이 봉안당의 자리까지 조용히 이어집니다. 비어 있던 시간을,
             다시 만나는 순간으로 바꿔 드립니다.
           </p>
+          <p className="mx-auto mt-8 max-w-2xl whitespace-pre-line font-serif text-[1.15rem] leading-relaxed text-[#D4AF37]/88 sm:text-[1.25rem]">
+            {'아이의 메시지는 여기서 끝나지 않습니다.\n이터널 커넥트에서는\n그 마음이 계속 도착합니다.'}
+          </p>
         </motion.div>
 
         <MotionReveal>

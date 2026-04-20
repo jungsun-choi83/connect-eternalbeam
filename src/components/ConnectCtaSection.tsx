@@ -19,18 +19,18 @@ export function ConnectCtaSection({ onConnect }: Props) {
           transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] as const }}
         >
           <p className="mb-8 font-sans text-[11px] uppercase tracking-[0.4em] text-[#D4AF37]/55">
-            예약 · 결제
+            결제 진행
           </p>
           <button
             type="button"
             onClick={onConnect}
             className="group relative w-full max-w-xl border border-[#D4AF37]/45 bg-[#D4AF37]/[0.08] px-8 py-7 font-serif text-xl tracking-wide text-[#D4AF37] transition hover:border-[#D4AF37]/70 hover:bg-[#D4AF37]/12 sm:py-8 sm:text-2xl md:text-[1.75rem]"
           >
-            <span className="relative z-10">아이와 다시 연결하기</span>
+            <span className="relative z-10">구독 결제 이어가기</span>
             <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.12),transparent_70%)] opacity-0 transition group-hover:opacity-100" />
           </button>
           <p className="mx-auto mt-10 max-w-md font-sans text-sm leading-[1.85] text-white/42">
-            결제 연동은 런칭 시 이 자리에서 이어집니다. 지금은 마음만 담아 두셔도 괜찮아요.
+            이메일 확인 후 바로 결제를 진행하실 수 있도록 이 단계에서 연결됩니다.
           </p>
         </motion.div>
       </div>

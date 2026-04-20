@@ -76,13 +76,29 @@ function pickString(obj: Record<string, unknown> | null, keys: string[]): string
  * URL 쿼리 → (우선) 그 다음 `st_letter` / `st_email` → 기존 soultrace_* 키 순으로 편지·이메일을 합칩니다.
  */
 export function syncSoulTraceFromSearchParams(searchParams: URLSearchParams): SoulTracePayload {
+  const source = safeDecodeParam(searchParams.get('source'))?.toLowerCase() ?? null
+  const payloadRaw = safeDecodeParam(searchParams.get('payload'))
   const payloadObj = tryParsePayload(searchParams.get('payload'))
 
   const fromUrlLetter =
     safeDecodeParam(searchParams.get('letter')) ??
     safeDecodeParam(searchParams.get('letter_content')) ??
+    safeDecodeParam(searchParams.get('content')) ??
+    safeDecodeParam(searchParams.get('message')) ??
+    safeDecodeParam(searchParams.get('final_letter')) ??
+    safeDecodeParam(searchParams.get('lastLetter')) ??
     safeDecodeParam(searchParams.get('st_letter')) ??
-    pickString(payloadObj, ['letter', 'letter_content', 'st_letter'])
+    pickString(payloadObj, [
+      'letter',
+      'letter_content',
+      'st_letter',
+      'content',
+      'message',
+      'final_letter',
+      'lastLetter',
+    ]) ??
+    // payload가 plain text일 수도 있음
+    (payloadRaw && payloadRaw.toLowerCase() !== 'localstorage' ? payloadRaw : null)
 
   const fromUrlEmail =
     safeDecodeParam(searchParams.get('email')) ??
@@ -98,8 +114,16 @@ export function syncSoulTraceFromSearchParams(searchParams: URLSearchParams): So
 
   const stLetter = readStorage(ST_KEY_LETTER)
   const stEmail = readStorage(ST_KEY_EMAIL)
+  const isSoultraceBridgeWithoutContent =
+    source === 'soultrace' &&
+    (!fromUrlLetter || !fromUrlLetter.trim()) &&
+    payloadRaw?.toLowerCase() === 'localstorage'
 
-  const letter = fromUrlLetter ?? stLetter ?? readStorage(STORAGE_LETTER)
+  // 타 도메인(localStorage 미공유)에서 payload=localStorage로 넘어온 경우
+  // 오래된 로컬 편지(예: "안녕")를 재사용하지 않도록 막습니다.
+  const letter = isSoultraceBridgeWithoutContent
+    ? null
+    : fromUrlLetter ?? stLetter ?? readStorage(STORAGE_LETTER)
   const email = fromUrlEmail ?? stEmail ?? readStorage(STORAGE_EMAIL)
   const resolvedDeviceId = deviceId ?? readStorage(STORAGE_DEVICE)
 

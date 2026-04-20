@@ -14,6 +14,7 @@ import { OrderAutoAccountCard } from './components/anonymous/OrderAutoAccountCar
 import { SoftArchivePrompt } from './components/anonymous/SoftArchivePrompt'
 import { saveConnectLetter } from './lib/connectLettersApi'
 import { getOrCreateAnonId, resolveActiveAnonId } from './lib/anonymousSession'
+import { startTossTestCheckout } from './lib/tossCheckout'
 import {
   type SoulTracePayload,
   syncSoulTraceFromSearchParams,
@@ -25,6 +26,8 @@ import { OAuthKakaoCallbackPage } from './pages/OAuthKakaoCallback'
 import { QrToolPage } from './pages/QrToolPage'
 import { RegisterDevicePage } from './pages/RegisterDevicePage'
 import { RegisterSerialPage } from './pages/RegisterSerialPage'
+import { TossPaymentFailPage } from './pages/TossPaymentFailPage'
+import { TossPaymentSuccessPage } from './pages/TossPaymentSuccessPage'
 
 function Landing() {
   const [searchParams] = useSearchParams()
@@ -37,6 +40,9 @@ function Landing() {
     return syncSoulTraceFromSearchParams(new URLSearchParams(window.location.search))
   })
   const [letterSaved, setLetterSaved] = useState(false)
+  const source = searchParams.get('source')?.toLowerCase() ?? null
+  const payloadType = searchParams.get('payload')?.toLowerCase() ?? null
+  const missingSoulLetter = source === 'soultrace' && payloadType === 'localstorage' && !soul.letter
 
   useEffect(() => {
     setSoul(syncSoulTraceFromSearchParams(searchParams))
@@ -81,15 +87,25 @@ function Landing() {
     })
   }
 
-  const handleSubscriptionOnly = async () => {
+  const handleSubscriptionOnly = async (email: string) => {
     await trySaveSoulLetter()
-    window.alert('전송 서비스 구독 연동 예정입니다. 런칭 시 이 자리에서 이어집니다.')
+    try {
+      await startTossTestCheckout(email)
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : '토스 결제를 시작하지 못했습니다.')
+    }
   }
 
   return (
     <div className="min-h-dvh text-white">
       <PreparingBanner />
       <LetterSavedConfirmation visible={letterSaved} />
+      {missingSoulLetter && (
+        <div className="border-b border-amber-400/20 bg-amber-500/10 px-6 py-3 text-center font-sans text-xs text-amber-200/90">
+          소울트레이스에서 편지 본문이 전달되지 않았습니다. 연결 링크에 `st_letter` 또는 JSON
+          `payload`를 포함해 주세요.
+        </div>
+      )}
       {soul.letter?.trim() || soul.email?.trim() ? (
         <SoulTraceLetterHero payload={soul} />
       ) : (
@@ -97,15 +113,15 @@ function Landing() {
       )}
       <main className="pb-[5.85rem] sm:pb-0">
         <ProductShowcase />
+        <FeatureSection />
         <ProductSection
           onPackagePurchase={handlePackage}
           onSubscription={handleSubscriptionOnly}
         />
+        <ConnectCtaSection onConnect={handleConnect} />
         <div className="border-b border-[#D4AF37]/10 px-8 pb-24 pt-4 md:px-12">
           <OrderAutoAccountCard />
         </div>
-        <ConnectCtaSection onConnect={handleConnect} />
-        <FeatureSection />
         <SubscriptionSection />
       </main>
       <SoftArchivePrompt anonId={activeAnonId} />
@@ -125,6 +141,8 @@ function App() {
         <Route path="/demo/letter" element={<LetterResultDemoPage />} />
         <Route path="/oauth/google/callback" element={<OAuthGoogleCallbackPage />} />
         <Route path="/oauth/kakao/callback" element={<OAuthKakaoCallbackPage />} />
+        <Route path="/payments/toss/success" element={<TossPaymentSuccessPage />} />
+        <Route path="/payments/toss/fail" element={<TossPaymentFailPage />} />
         <Route path="/tools/qr/:deviceSn" element={<QrToolPage />} />
       </Routes>
     </BrowserRouter>

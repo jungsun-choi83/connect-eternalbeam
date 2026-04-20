@@ -5,16 +5,15 @@ export function SubscriptionSection() {
     <section className="px-8 py-24 sm:py-32 md:px-12">
       <div className="mx-auto max-w-3xl">
         <MotionReveal>
-          <div className="border border-white/8 bg-black/25 px-10 py-14 sm:px-14 sm:py-16">
-            <h2 className="font-serif text-2xl text-[#D4AF37] sm:text-[1.65rem]">이어지는 대화를 위해</h2>
-            <p className="mt-8 font-sans text-[15px] leading-[1.9] text-white/68">
-              1년 뒤에도 아이와의 대화를 멈추지 않도록, 최소한의 유지비(월 전송 관리비)만으로
-              운영됩니다. 부담을 줄이고, 마음이 닿는 시간은 조금 더 길게 남기고 싶었습니다.
-            </p>
-            <p className="mt-6 font-sans text-[15px] leading-[1.9] text-white/48">
-              갱신 전에는 앱 알림과 메일로 먼저 알려 드리며, 원하시지 않으시면 그때 해지하실 수
-              있어요. 이터널 커넥트에 담긴 추억은 기기에서 열람 가능한 범위 안에서 남습니다.
-              (전송·동기화는 구독 기간에 한해 제공됩니다.)
+          <div className="border border-[#D4AF37]/18 bg-black/25 px-10 py-14 text-center sm:px-14 sm:py-16">
+            <h2 className="font-serif text-2xl leading-relaxed text-[#D4AF37] sm:text-[1.8rem]">
+              이건 단순한 기기가 아닙니다.
+              <br />
+              아이와의 시간을 계속 이어주는 방식입니다.
+            </h2>
+            <p className="mx-auto mt-8 max-w-2xl font-sans text-[15px] leading-[1.9] text-white/58">
+              이터널 커넥트는 결제와 기능보다 먼저, 남아 있는 마음이 사라지지 않도록 도와주는 연결의
+              루틴을 만듭니다.
             </p>
           </div>
         </MotionReveal>

@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string
   /** Supabase anon public key (클라이언트 전용, RLS와 함께 사용) */
   readonly VITE_SUPABASE_ANON_KEY?: string
+  /** Toss Payments 클라이언트 키 (테스트: test_ck_...) */
+  readonly VITE_TOSS_CLIENT_KEY?: string
 }
 
 interface ImportMeta {
