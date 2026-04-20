@@ -14,30 +14,21 @@ export function PreparingBanner() {
   const [params] = useSearchParams()
 
   const { line, sub } = useMemo(() => {
-    const letterId = decodeParam(params.get('letterId'))
     const petName =
       decodeParam(params.get('petName')) ?? decodeParam(params.get('name'))
     const anonId = decodeParam(params.get('anonId'))
 
     if (anonId) {
-      const short = anonId.length > 14 ? `${anonId.slice(0, 10)}…` : anonId
       return {
-        line: '소울트레이스에서 이어온 편지를 불러왔습니다.',
-        sub: `대화 기록 · ${short}`,
+        line: '이전에 남긴 편지가 다시 도착했습니다.',
+        sub: '사라지지 않도록, 이곳에 이어집니다.',
       }
     }
 
     if (petName) {
       return {
-        line: `${petName}를 위한 이터널 커넥트를 준비 중입니다.`,
-        sub: letterId ? `편지 ID · ${letterId}` : null,
-      }
-    }
-
-    if (letterId) {
-      return {
-        line: '이터널 커넥트를 준비 중입니다.',
-        sub: `편지 ID · ${letterId}`,
+        line: `${petName}와 다시 만나는 시간을 준비하고 있습니다.`,
+        sub: '오늘의 메시지가 내일에도 남도록 이어집니다.',
       }
     }
 

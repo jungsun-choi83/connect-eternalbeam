@@ -13,7 +13,7 @@ export function LetterSavedConfirmation({ visible }: Props) {
       >
         <p className="font-serif text-lg text-[#D4AF37]">편지가 안전하게 연결되었습니다</p>
         <p className="mt-2 font-sans text-sm leading-relaxed text-white/55">
-          기록이 서버에 보관되었어요. 이어서 구독·결제를 진행하시거나, 기기와 연결하실 때 이어집니다.
+          방금 남긴 마음이 사라지지 않도록 이어졌어요. 이제 다시 만나는 시간을 계속 이어가세요.
         </p>
       </div>
     </div>

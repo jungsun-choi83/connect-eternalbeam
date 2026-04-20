@@ -15,7 +15,7 @@ export function FeatureSection() {
 
         <MotionReveal delay={0.06} className="mt-14 border border-white/10 bg-black/25 px-8 py-10 sm:px-12">
           <ul className="space-y-5 font-sans text-[15px] leading-relaxed text-white/76">
-            <li>- 소울트레이스에서 시작된 편지는</li>
+            <li>- 이 편지는 끝나지 않습니다</li>
             <li>- 시간이 지나도 계속 이어지고</li>
             <li>- 언제든 다시 만날 수 있습니다</li>
           </ul>

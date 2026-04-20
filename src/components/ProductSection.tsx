@@ -12,7 +12,7 @@ export function ProductSection({ onPackagePurchase, onSubscription }: Props) {
   const handleSubscription = (e: FormEvent) => {
     e.preventDefault()
     if (!email.trim()) {
-      window.alert('결제를 이어갈 이메일을 입력해 주세요.')
+      window.alert('다시 이어가기 위한 이메일을 남겨 주세요.')
       return
     }
     onSubscription?.(email.trim())
@@ -31,7 +31,7 @@ export function ProductSection({ onPackagePurchase, onSubscription }: Props) {
           <h2 className="font-serif text-[1.65rem] leading-snug text-[#D4AF37] sm:text-3xl md:text-[2.1rem]">
             구독을 먼저 시작하고,
             <br className="hidden sm:block" />
-            <span className="text-white/88">원하실 때 명패로 확장하세요</span>
+            <span className="text-white/88">원하실 때 빛으로 간직하세요</span>
           </h2>
         </MotionReveal>
 
@@ -44,22 +44,21 @@ export function ProductSection({ onPackagePurchase, onSubscription }: Props) {
               <h3 className="mt-4 font-serif text-2xl text-[#D4AF37] sm:text-[1.8rem]">
                 아이의 메시지를 계속 받기
               </h3>
-              <p className="mt-5 font-sans text-[15px] leading-relaxed text-white/55">
-                아이의 마음이 매일, 혹은 원하는 순간에 도착합니다. 시간이 지나도 끊기지 않는
-                연결을 경험하세요.
+              <p className="mt-5 whitespace-pre-line font-sans text-[15px] leading-relaxed text-white/55">
+                {'아이의 마음은\n하루에 한 번,\n혹은 어느 순간에 조용히 도착합니다.'}
               </p>
               <ul className="mt-10 space-y-4 font-sans text-[15px] leading-relaxed text-white/78">
                 <li className="flex gap-3">
                   <span className="text-[#D4AF37]/85">✔</span>
-                  <span>언제든 편지 전송 가능</span>
+                  <span>기다리면 도착합니다</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-[#D4AF37]/85">✔</span>
-                  <span>시간이 쌓이는 기록</span>
+                  <span>시간이 쌓입니다</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="text-[#D4AF37]/85">✔</span>
-                  <span>우리 아이만의 말투로 변화</span>
+                  <span>우리 아이만의 말로 남습니다</span>
                 </li>
               </ul>
 
@@ -75,7 +74,7 @@ export function ProductSection({ onPackagePurchase, onSubscription }: Props) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="결제 안내를 받을 이메일"
+                    placeholder="다시 만날 이메일"
                     className="w-full border border-white/15 bg-black/45 px-4 py-3 font-sans text-sm text-white/90 outline-none focus:border-[#D4AF37]/45"
                     autoComplete="email"
                     required
@@ -84,7 +83,7 @@ export function ProductSection({ onPackagePurchase, onSubscription }: Props) {
                     type="submit"
                     className="w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 px-6 py-3.5 font-sans text-sm font-medium tracking-wide text-[#D4AF37] transition hover:border-[#D4AF37]/65 hover:bg-[#D4AF37]/18"
                   >
-                    지금 시작하기
+                    지금, 다시 이어가기
                   </button>
                 </form>
               </div>
@@ -99,13 +98,13 @@ export function ProductSection({ onPackagePurchase, onSubscription }: Props) {
               <h3 className="mt-4 font-serif text-2xl text-[#D4AF37] sm:text-[1.65rem]">
                 그 메시지를 눈앞에서 만나는 방법
               </h3>
-              <p className="mt-5 font-sans text-[15px] leading-relaxed text-white/55">
-                아이의 편지를 빛으로 간직하세요. 시간이 지나도 사라지지 않도록.
+              <p className="mt-5 whitespace-pre-line font-sans text-[15px] leading-relaxed text-white/55">
+                {'아이의 편지를\n빛으로 간직하세요.\n시간이 지나도 사라지지 않도록.'}
               </p>
               <ul className="mt-10 space-y-5 font-sans text-[15px] leading-relaxed text-white/75">
                 <li className="flex gap-3">
                   <span className="mt-2.5 h-px w-6 shrink-0 bg-[#D4AF37]/40" />
-                  <span>디스플레이 명패</span>
+                  <span>빛의 편지 디스플레이</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="mt-2.5 h-px w-6 shrink-0 bg-[#D4AF37]/40" />
@@ -113,11 +112,13 @@ export function ProductSection({ onPackagePurchase, onSubscription }: Props) {
                 </li>
                 <li className="flex gap-3">
                   <span className="mt-2.5 h-px w-6 shrink-0 bg-[#D4AF37]/40" />
-                  <span>1년 이용 포함</span>
+                  <span>1년 동안 이어지는 메시지</span>
                 </li>
               </ul>
               <div className="mt-12 border-t border-white/8 pt-10">
-                <p className="font-sans text-xs tracking-wide text-white/35">패키지 가격</p>
+                <p className="font-sans text-xs tracking-wide text-white/35">
+                  아이의 메시지를 간직하는 방법
+                </p>
                 <p className="mt-2 font-serif text-3xl tracking-tight text-[#D4AF37] sm:text-4xl">
                   ₩000,000
                 </p>
@@ -129,7 +130,7 @@ export function ProductSection({ onPackagePurchase, onSubscription }: Props) {
                   onClick={onPackagePurchase}
                   className="w-full border border-white/15 bg-transparent px-6 py-3.5 font-sans text-sm font-medium tracking-wide text-white/75 transition hover:border-white/25 hover:bg-white/5"
                 >
-                  명패로 간직하기
+                  이 순간을 남기기
                 </button>
               </div>
             </article>

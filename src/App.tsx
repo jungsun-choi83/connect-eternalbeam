@@ -40,9 +40,6 @@ function Landing() {
     return syncSoulTraceFromSearchParams(new URLSearchParams(window.location.search))
   })
   const [letterSaved, setLetterSaved] = useState(false)
-  const source = searchParams.get('source')?.toLowerCase() ?? null
-  const payloadType = searchParams.get('payload')?.toLowerCase() ?? null
-  const missingSoulLetter = source === 'soultrace' && payloadType === 'localstorage' && !soul.letter
 
   useEffect(() => {
     setSoul(syncSoulTraceFromSearchParams(searchParams))
@@ -100,12 +97,6 @@ function Landing() {
     <div className="min-h-dvh text-white">
       <PreparingBanner />
       <LetterSavedConfirmation visible={letterSaved} />
-      {missingSoulLetter && (
-        <div className="border-b border-amber-400/20 bg-amber-500/10 px-6 py-3 text-center font-sans text-xs text-amber-200/90">
-          소울트레이스에서 편지 본문이 전달되지 않았습니다. 연결 링크에 `st_letter` 또는 JSON
-          `payload`를 포함해 주세요.
-        </div>
-      )}
       {soul.letter?.trim() || soul.email?.trim() ? (
         <SoulTraceLetterHero payload={soul} />
       ) : (

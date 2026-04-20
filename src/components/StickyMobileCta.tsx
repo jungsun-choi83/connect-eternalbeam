@@ -14,7 +14,7 @@ export function StickyMobileCta({ onClick }: Props) {
           onClick={onClick}
           className="w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 py-4 font-serif text-lg tracking-wide text-[#D4AF37] shadow-[0_-12px_48px_rgba(212,175,55,0.12)] transition active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
         >
-          아이와 다시 연결하기
+          지금, 다시 이어가기
         </button>
       </div>
     </div>

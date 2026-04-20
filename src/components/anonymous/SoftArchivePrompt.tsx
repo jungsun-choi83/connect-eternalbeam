@@ -57,7 +57,7 @@ export function SoftArchivePrompt({ anonId }: Props) {
           아이와의 소중한 대화를 보관해드릴까요?
         </p>
         <p className="mt-2 text-center font-sans text-xs leading-relaxed text-white/45">
-          간편 로그인 한 번이면 이 기기와 연결된 기록까지 안전하게 모아 드려요.
+          간편 로그인 한 번이면 지금까지의 편지와 시간이 사라지지 않도록 이어집니다.
         </p>
         <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
           <button

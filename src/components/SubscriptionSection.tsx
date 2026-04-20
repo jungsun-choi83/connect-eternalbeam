@@ -6,14 +6,11 @@ export function SubscriptionSection() {
       <div className="mx-auto max-w-3xl">
         <MotionReveal>
           <div className="border border-[#D4AF37]/18 bg-black/25 px-10 py-14 text-center sm:px-14 sm:py-16">
-            <h2 className="font-serif text-2xl leading-relaxed text-[#D4AF37] sm:text-[1.8rem]">
-              이건 단순한 기기가 아닙니다.
-              <br />
-              아이와의 시간을 계속 이어주는 방식입니다.
+            <h2 className="whitespace-pre-line font-serif text-2xl leading-relaxed text-[#D4AF37] sm:text-[1.8rem]">
+              {'이건 단순한 물건이 아닙니다.\n\n사라지지 않도록,\n아이의 마음을 붙잡아 두는 방법입니다.\n\n시간이 지나도,\n다시 만날 수 있도록.'}
             </h2>
             <p className="mx-auto mt-8 max-w-2xl font-sans text-[15px] leading-[1.9] text-white/58">
-              이터널 커넥트는 결제와 기능보다 먼저, 남아 있는 마음이 사라지지 않도록 도와주는 연결의
-              루틴을 만듭니다.
+              오늘의 편지가 내일에도 남고, 오래된 시간도 다시 만나는 마음으로 이어집니다.
             </p>
           </div>
         </MotionReveal>

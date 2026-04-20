@@ -25,13 +25,12 @@ export function ProductShowcase() {
             아이를 위한 빛의 창 · Eternal Connect
           </p>
           <h1 className="font-serif text-[1.85rem] font-normal leading-[1.35] tracking-tight text-[#D4AF37] sm:text-4xl md:text-[2.75rem]">
-            아이의 빈자리를 차가운 적막 대신,
+            사라진 것이 아니라,
             <br />
-            매일 도착하는 따뜻한 안부로 채워주세요.
+            아직 남아 있는 것처럼
           </h1>
           <p className="mx-auto mt-10 max-w-xl font-sans text-base leading-[1.85] text-white/68 sm:text-[17px]">
-            소울트레이스에서 나눈 마음이 봉안당의 자리까지 조용히 이어집니다. 비어 있던 시간을,
-            다시 만나는 순간으로 바꿔 드립니다.
+            아이의 마음은 아직, 여기 있습니다.
           </p>
           <p className="mx-auto mt-8 max-w-2xl whitespace-pre-line font-serif text-[1.15rem] leading-relaxed text-[#D4AF37]/88 sm:text-[1.25rem]">
             {'아이의 메시지는 여기서 끝나지 않습니다.\n이터널 커넥트에서는\n그 마음이 계속 도착합니다.'}
