@@ -1,19 +1,10 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
-import { ConnectCtaSection } from './components/ConnectCtaSection'
-import { FeatureSection } from './components/FeatureSection'
+import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom'
 import { LetterSavedConfirmation } from './components/LetterSavedConfirmation'
-import { PreparingBanner } from './components/PreparingBanner'
-import { ProductSection } from './components/ProductSection'
-import { ProductShowcase } from './components/ProductShowcase'
-import { SoulTraceLetterHero } from './components/SoulTraceLetterHero'
-import { StickyMobileCta } from './components/StickyMobileCta'
-import { SubscriptionSection } from './components/SubscriptionSection'
-import { AnonLetterPreview } from './components/anonymous/AnonLetterPreview'
-import { OrderAutoAccountCard } from './components/anonymous/OrderAutoAccountCard'
+import { MobileEmotionFunnel } from './components/MobileEmotionFunnel'
 import { SoftArchivePrompt } from './components/anonymous/SoftArchivePrompt'
 import { saveConnectLetter } from './lib/connectLettersApi'
-import { getOrCreateAnonId, resolveActiveAnonId } from './lib/anonymousSession'
+import { resolveActiveAnonId } from './lib/anonymousSession'
 import { startTossTestCheckout } from './lib/tossCheckout'
 import {
   type SoulTracePayload,
@@ -30,8 +21,7 @@ import { TossPaymentFailPage } from './pages/TossPaymentFailPage'
 import { TossPaymentSuccessPage } from './pages/TossPaymentSuccessPage'
 
 function Landing() {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const activeAnonId = resolveActiveAnonId(searchParams)
   const [soul, setSoul] = useState<SoulTracePayload>(() => {
     if (typeof window === 'undefined') {
@@ -45,9 +35,28 @@ function Landing() {
     setSoul(syncSoulTraceFromSearchParams(searchParams))
   }, [searchParams])
 
-  const scrollToConnect = () => {
-    document.getElementById('connect')?.scrollIntoView({ behavior: 'smooth' })
-  }
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams)
+    let changed = false
+    for (const key of [
+      'letter',
+      'letter_content',
+      'st_letter',
+      'message',
+      'content',
+      'final_letter',
+      'lastLetter',
+      'payload',
+    ]) {
+      if (next.has(key)) {
+        next.delete(key)
+        changed = true
+      }
+    }
+    if (changed) {
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const trySaveSoulLetter = async (): Promise<void> => {
     const payload = syncSoulTraceFromSearchParams(searchParams)
@@ -67,21 +76,9 @@ function Landing() {
     }
   }
 
-  const handleConnect = async () => {
-    await trySaveSoulLetter()
-    window.alert('결제·예약 연동 예정입니다. 킥스타터 오픈 시 이 자리에서 안내드릴게요.')
-  }
-
   const handlePackage = async () => {
     await trySaveSoulLetter()
-    const id = getOrCreateAnonId()
-    navigate(
-      { pathname: '/', search: `?anonId=${encodeURIComponent(id)}`, hash: '#order' },
-      { replace: true },
-    )
-    requestAnimationFrame(() => {
-      document.getElementById('order')?.scrollIntoView({ behavior: 'smooth' })
-    })
+    window.alert('빛으로 간직하는 결제 흐름을 준비 중입니다.')
   }
 
   const handleSubscriptionOnly = async (email: string) => {
@@ -95,28 +92,13 @@ function Landing() {
 
   return (
     <div className="min-h-dvh text-white">
-      <PreparingBanner />
       <LetterSavedConfirmation visible={letterSaved} />
-      {soul.letter?.trim() || soul.email?.trim() ? (
-        <SoulTraceLetterHero payload={soul} />
-      ) : (
-        <AnonLetterPreview anonId={activeAnonId} />
-      )}
-      <main className="pb-[5.85rem] sm:pb-0">
-        <ProductShowcase />
-        <FeatureSection />
-        <ProductSection
-          onPackagePurchase={handlePackage}
-          onSubscription={handleSubscriptionOnly}
-        />
-        <ConnectCtaSection onConnect={handleConnect} />
-        <div className="border-b border-[#D4AF37]/10 px-8 pb-24 pt-4 md:px-12">
-          <OrderAutoAccountCard />
-        </div>
-        <SubscriptionSection />
-      </main>
+      <MobileEmotionFunnel
+        payload={soul}
+        onStartSubscription={handleSubscriptionOnly}
+        onUpgrade={handlePackage}
+      />
       <SoftArchivePrompt anonId={activeAnonId} />
-      <StickyMobileCta onClick={scrollToConnect} />
     </div>
   )
 }
@@ -126,6 +108,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/connect/:id" element={<Landing />} />
         <Route path="/display/:deviceSn" element={<DisplayPage />} />
         <Route path="/register/:serial" element={<RegisterSerialPage />} />
         <Route path="/register-device" element={<RegisterDevicePage />} />
