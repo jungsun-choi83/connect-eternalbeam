@@ -42,7 +42,12 @@ function randomOrderId(): string {
   return `ec_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-export async function startTossTestCheckout(email: string): Promise<void> {
+async function requestCheckout(input: {
+  email: string
+  amount: number
+  orderName: string
+  successPath: string
+}): Promise<void> {
   await ensureTossScript()
   const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY?.trim() || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
   const tossFactory = window.TossPayments
@@ -50,12 +55,32 @@ export async function startTossTestCheckout(email: string): Promise<void> {
     throw new Error('토스 결제 SDK 초기화에 실패했습니다.')
   }
   const tossPayments = tossFactory(clientKey)
+  const successUrl = new URL(input.successPath, window.location.origin)
+  successUrl.searchParams.set('email', input.email)
   await tossPayments.requestPayment('카드', {
-    amount: 1000,
+    amount: input.amount,
     orderId: randomOrderId(),
-    orderName: '이터널 커넥트 월 구독(테스트 결제)',
-    customerEmail: email,
-    successUrl: `${window.location.origin}/payments/toss/success`,
+    orderName: input.orderName,
+    customerEmail: input.email,
+    successUrl: successUrl.toString(),
     failUrl: `${window.location.origin}/payments/toss/fail`,
+  })
+}
+
+export async function startTossTestCheckout(email: string): Promise<void> {
+  await requestCheckout({
+    email,
+    amount: 5900,
+    orderName: '이터널 커넥트 월 구독',
+    successPath: '/payments/toss/success?flow=subscription',
+  })
+}
+
+export async function startTossUpsellCheckout(email: string): Promise<void> {
+  await requestCheckout({
+    email,
+    amount: 89000,
+    orderName: '이터널 커넥트 빛의 명패',
+    successPath: '/payments/toss/success?flow=upsell',
   })
 }

@@ -30,11 +30,33 @@ import {
 } from './authUtil.mjs'
 import { insertConnectLetter, listConnectLettersByDevice } from './lib/supabaseConnectLetters.mjs'
 import { generatePetMessage } from './lib/petMessageGenerator.mjs'
+import { generatePushLine } from './lib/pushMessageGenerator.mjs'
+import { generatePetReplyFromUserMessage } from './lib/petReplyOpenai.mjs'
+import {
+  initReplyPushStore,
+  touchUserSeen,
+  ensureActivityRow,
+  createReplyWaiting,
+  listDueWaitingReplies,
+  markReplyDelivered,
+  getLatestReplyByUser,
+  upsertPushSubscription,
+  enqueuePushJob,
+  listDuePushJobs,
+  markPushSent,
+  markPushFailed,
+  getPushSubscriptions,
+  canSendPushNow,
+  listUserActivities,
+  patchUserActivity,
+  clearNextMessageTime,
+} from './lib/replyPushStoreV2.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const distDir = path.join(__dirname, '..', 'dist')
 
 initDb()
+initReplyPushStore()
 
 const PORT = Number(process.env.PORT) || 3001
 const ADMIN_KEY = process.env.ADMIN_SECRET || ''
@@ -45,6 +67,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
 const KAKAO_REST_API_KEY = process.env.KAKAO_REST_API_KEY || ''
 const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET || ''
 const CONNECT_DEVICE_API_KEY = process.env.CONNECT_DEVICE_API_KEY || ''
+const PUSH_DELIVERY_WEBHOOK = process.env.PUSH_DELIVERY_WEBHOOK || ''
 
 const ANON_ID_RE = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^[a-zA-Z0-9_-]{8,128}$/
 
@@ -82,6 +105,202 @@ const DEVICE_SN_RE = /^[a-zA-Z0-9_-]{4,128}$/
 
 function validateDeviceSn(sn) {
   return typeof sn === 'string' && DEVICE_SN_RE.test(sn)
+}
+
+/** @param {unknown} v */
+function normalizeUserId(v) {
+  return typeof v === 'string' ? v.trim().toLowerCase().slice(0, 120) : ''
+}
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function dayKeyLocal(ts) {
+  const d = new Date(ts)
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+
+function withJitter(baseTs, jitterMinutes = 30) {
+  const delta = randomInt(-jitterMinutes, jitterMinutes) * 60 * 1000
+  return Math.max(Date.now(), baseTs + delta)
+}
+
+function pickMainMessageTime(nowTs) {
+  const now = new Date(nowTs)
+  const day = new Date(nowTs)
+  if (now.getHours() >= 23) day.setDate(day.getDate() + 1)
+  day.setHours(randomInt(8, 22), randomInt(0, 59), 0, 0)
+  let out = withJitter(day.getTime(), 30)
+  if (out <= nowTs) out = nowTs + randomInt(10, 55) * 60 * 1000
+  return out
+}
+
+function mapEmotionToPushEmotion(emotion) {
+  if (emotion === 'playful') return 'playful'
+  if (emotion === 'calm') return 'calm'
+  return 'miss'
+}
+
+async function queuePushMessage({ userId, type, emotion, deepLink, delayMs = 0, deliverAt }) {
+  const message = await generatePushLine({
+    type,
+    emotion: mapEmotionToPushEmotion(emotion),
+  })
+  enqueuePushJob({
+    user_id: userId,
+    type,
+    emotion: mapEmotionToPushEmotion(emotion),
+    message,
+    deep_link: deepLink,
+    deliver_at: typeof deliverAt === 'number' ? Math.max(Date.now(), deliverAt) : Date.now() + Math.max(0, delayMs),
+  })
+}
+
+async function deliverReplyRow(row) {
+  const aiMessage = await generatePetReplyFromUserMessage({
+    userMessage: row.user_message,
+    fallbackInput: {
+      time: row.time,
+      emotion: row.emotion,
+      memory: row.memory,
+      user_action: 'reply',
+      character: row.character,
+    },
+  })
+  const delivered = markReplyDelivered(row.id, aiMessage, Date.now())
+  if (!delivered) return null
+
+  await queuePushMessage({
+    userId: delivered.user_id,
+    type: 'new_message',
+    emotion: delivered.emotion,
+    deepLink: `/subscription?userId=${encodeURIComponent(delivered.user_id)}&arrived=1`,
+    delayMs: randomInt(2, 10) * 60 * 1000, // 생성 후 2~10분 랜덤 발송
+  })
+  return delivered
+}
+
+async function processDueReplies() {
+  const due = listDueWaitingReplies(Date.now())
+  for (const row of due) {
+    try {
+      await deliverReplyRow(row)
+    } catch (e) {
+      console.error('[reply-delivery-failed]', e)
+    }
+  }
+}
+
+async function dispatchPushJob(job) {
+  const subscriptions = getPushSubscriptions(job.user_id)
+  if (!canSendPushNow(job.user_id, Date.now(), 2)) {
+    markPushFailed(job.id, 'daily_limit')
+    return
+  }
+  if (PUSH_DELIVERY_WEBHOOK) {
+    const res = await fetch(PUSH_DELIVERY_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: job.user_id,
+        message: job.message,
+        deepLink: job.deep_link,
+        subscriptions,
+      }),
+    })
+    if (!res.ok) {
+      markPushFailed(job.id, `webhook_${res.status}`)
+      return
+    }
+  } else {
+    console.log('[push-preview]', {
+      userId: job.user_id,
+      message: job.message,
+      deepLink: job.deep_link,
+      subscriptions: subscriptions.length,
+    })
+  }
+  markPushSent(job.id, Date.now())
+}
+
+async function processDuePushJobs() {
+  const due = listDuePushJobs(Date.now(), 30)
+  for (const job of due) {
+    try {
+      await dispatchPushJob(job)
+    } catch (e) {
+      markPushFailed(job.id, e instanceof Error ? e.message : 'dispatch_failed')
+    }
+  }
+}
+
+async function processTimedPushTriggers() {
+  const now = Date.now()
+  const todayKey = dayKeyLocal(now)
+
+  for (const a of listUserActivities()) {
+    ensureActivityRow(a.user_id, now)
+
+    // 하루 1회 필수 메인 메시지: 08:00~22:00 랜덤, 매일 다른 시간
+    if (a.main_scheduled_day_key !== todayKey) {
+      const nextMain = pickMainMessageTime(now)
+      patchUserActivity(a.user_id, {
+        main_scheduled_day_key: todayKey,
+        next_message_time: nextMain,
+      })
+
+      // 감정 이벤트(memory): 하루 1회 20% 확률로 예약
+      if (a.memory_event_day_key !== todayKey && Math.random() < 0.2) {
+        const memoryAt = withJitter(nextMain + randomInt(1, 6) * 60 * 60 * 1000, 30)
+        await queuePushMessage({
+          userId: a.user_id,
+          type: 'memory',
+          emotion: 'calm',
+          deepLink: `/subscription?userId=${encodeURIComponent(a.user_id)}`,
+          deliverAt: memoryAt,
+        })
+      }
+      patchUserActivity(a.user_id, { memory_event_day_key: todayKey })
+    }
+
+    // 메인 메시지 시점 도달
+    if (a.next_message_time > 0 && now >= a.next_message_time) {
+      if (canSendPushNow(a.user_id, now, 2, 60 * 60 * 1000)) {
+        await queuePushMessage({
+          userId: a.user_id,
+          type: 'new_message',
+          emotion: 'miss',
+          deepLink: `/subscription?userId=${encodeURIComponent(a.user_id)}&arrived=1`,
+          deliverAt: withJitter(now, 30),
+        })
+        clearNextMessageTime(a.user_id, now)
+      } else {
+        // 최소 1시간 간격을 지키기 위해 다음 시점을 뒤로 민다.
+        patchUserActivity(a.user_id, {
+          next_message_time: now + 60 * 60 * 1000 + randomInt(5, 30) * 60 * 1000,
+        })
+      }
+    }
+
+    // 24h 미접속 트리거
+    if (
+      a.last_seen_at > 0 &&
+      now - a.last_seen_at >= 24 * 60 * 60 * 1000 &&
+      (!a.last_inactive_push_at || now - a.last_inactive_push_at >= 24 * 60 * 60 * 1000)
+    ) {
+      if (canSendPushNow(a.user_id, now, 2, 60 * 60 * 1000)) {
+        await queuePushMessage({
+          userId: a.user_id,
+          type: 'inactive',
+          emotion: 'miss',
+          deepLink: `/subscription?userId=${encodeURIComponent(a.user_id)}`,
+          deliverAt: withJitter(now + randomInt(5, 35) * 60 * 1000, 30),
+        })
+      }
+      patchUserActivity(a.user_id, { last_inactive_push_at: now })
+    }
+  }
 }
 
 function authMiddleware(req, res, next) {
@@ -648,6 +867,138 @@ app.post('/api/connect/letters', async (req, res) => {
 })
 
 /**
+ * 답장 저장
+ * POST /api/reply
+ * body: { userId, message, time, emotion, memory, character }
+ */
+app.post('/api/reply', (req, res) => {
+  const userId = normalizeUserId(req.body?.userId)
+  const message = req.body?.message
+  if (!userId) return res.status(400).json({ error: 'userId가 필요합니다.' })
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'message가 필요합니다.' })
+  }
+
+  touchUserSeen(userId, Date.now())
+
+  const delayHours = randomInt(1, 6)
+  const nextTime = Date.now() + delayHours * 60 * 60 * 1000
+  const row = createReplyWaiting({
+    user_id: userId,
+    user_message: message.trim(),
+    time: ['morning', 'night', 'rain', 'random'].includes(req.body?.time)
+      ? req.body.time
+      : 'random',
+    emotion: ['miss', 'thanks', 'calm', 'playful'].includes(req.body?.emotion)
+      ? req.body.emotion
+      : 'miss',
+    memory: ['walk', 'food', 'calling_name', 'touch'].includes(req.body?.memory)
+      ? req.body.memory
+      : 'walk',
+    character: {
+      personality: ['active', 'calm'].includes(req.body?.character?.personality)
+        ? req.body.character.personality
+        : 'calm',
+      tone: ['cute', 'quiet'].includes(req.body?.character?.tone) ? req.body.character.tone : 'quiet',
+    },
+    next_message_time: nextTime,
+  })
+
+  res.status(201).json({
+    replyId: row.id,
+    userMessage: row.user_message,
+    status: row.status,
+    next_message_time: row.next_message_time,
+  })
+})
+
+/**
+ * 답장 상태 조회 (재접속 시 도착 확인)
+ * GET /api/reply/status?userId=...
+ */
+app.get('/api/reply/status', async (req, res) => {
+  const userId = normalizeUserId(req.query?.userId)
+  if (!userId) return res.status(400).json({ error: 'userId 쿼리가 필요합니다.' })
+  touchUserSeen(userId, Date.now())
+
+  const latest = getLatestReplyByUser(userId)
+  if (!latest) {
+    return res.json({ status: 'none' })
+  }
+
+  if (latest.status === 'waiting_reply' && latest.next_message_time <= Date.now()) {
+    const delivered = await deliverReplyRow(latest)
+    if (delivered) {
+      return res.json({
+        status: 'delivered',
+        userMessage: delivered.user_message ?? null,
+        aiMessage: delivered.ai_message,
+        deliveredAt: delivered.delivered_at,
+      })
+    }
+  }
+
+  if (latest.status === 'waiting_reply') {
+    return res.json({
+      status: 'waiting_reply',
+      userMessage: latest.user_message ?? null,
+      next_message_time: latest.next_message_time,
+    })
+  }
+
+  return res.json({
+    status: 'delivered',
+    userMessage: latest.user_message ?? null,
+    aiMessage: latest.ai_message ?? null,
+    deliveredAt: latest.delivered_at ?? null,
+  })
+})
+
+/**
+ * 푸시 구독 저장
+ * POST /api/push/subscribe
+ * body: { userId, endpoint?, token?, platform? }
+ */
+app.post('/api/push/subscribe', (req, res) => {
+  const userId = normalizeUserId(req.body?.userId)
+  if (!userId) return res.status(400).json({ error: 'userId가 필요합니다.' })
+  upsertPushSubscription(userId, {
+    id: randomUUID(),
+    user_id: userId,
+    endpoint: typeof req.body?.endpoint === 'string' ? req.body.endpoint : undefined,
+    token: typeof req.body?.token === 'string' ? req.body.token : undefined,
+    platform: typeof req.body?.platform === 'string' ? req.body.platform : 'web',
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  })
+  touchUserSeen(userId, Date.now())
+  res.status(201).json({ ok: true })
+})
+
+/**
+ * 테스트 푸시 생성
+ * POST /api/push/test { userId, type, emotion }
+ */
+app.post('/api/push/test', async (req, res) => {
+  const userId = normalizeUserId(req.body?.userId)
+  if (!userId) return res.status(400).json({ error: 'userId가 필요합니다.' })
+  const type = ['new_message', 'inactive', 'night', 'memory'].includes(req.body?.type)
+    ? req.body.type
+    : 'memory'
+  const emotion = ['miss', 'calm', 'playful'].includes(req.body?.emotion)
+    ? req.body.emotion
+    : 'calm'
+  await queuePushMessage({
+    userId,
+    type,
+    emotion,
+    deepLink: `/subscription?userId=${encodeURIComponent(userId)}&arrived=1`,
+  })
+  await processDuePushJobs()
+  res.json({ ok: true })
+})
+
+/**
  * 기기(오렌지 파이 등)가 device_id 기준 편지 목록 조회
  * GET /api/connect/letters?device_id=EB-xxx
  * Header: Authorization: Bearer <CONNECT_DEVICE_API_KEY> 또는 X-Connect-Device-Key
@@ -725,6 +1076,16 @@ app.post('/api/generate-message', (req, res) => {
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })
 })
+
+setInterval(async () => {
+  try {
+    await processDueReplies()
+    await processTimedPushTriggers()
+    await processDuePushJobs()
+  } catch (e) {
+    console.error('[push-reply-loop]', e)
+  }
+}, 60 * 1000)
 
 if (fs.existsSync(distDir)) {
   app.use(express.static(distDir))
