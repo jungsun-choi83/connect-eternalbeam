@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto'
+import { randomBytes, timingSafeEqual } from 'crypto'
 import express from 'express'
 import cors from 'cors'
 import fs from 'fs'
@@ -28,6 +28,7 @@ import {
   verifyToken,
   randomUUID,
 } from './authUtil.mjs'
+import { insertConnectLetter, listConnectLettersByDevice } from './lib/supabaseConnectLetters.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const distDir = path.join(__dirname, '..', 'dist')
@@ -42,6 +43,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || ''
 const KAKAO_REST_API_KEY = process.env.KAKAO_REST_API_KEY || ''
 const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET || ''
+const CONNECT_DEVICE_API_KEY = process.env.CONNECT_DEVICE_API_KEY || ''
 
 const ANON_ID_RE = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^[a-zA-Z0-9_-]{8,128}$/
 
@@ -94,6 +96,32 @@ function authMiddleware(req, res, next) {
   } catch {
     return res.status(401).json({ error: '유효하지 않은 토큰입니다.' })
   }
+}
+
+/** JWT가 있으면 사용자 정보 반환, 없거나 실패 시 null */
+function tryAuthUser(req) {
+  const h = req.headers.authorization
+  if (!h?.startsWith('Bearer ')) return null
+  try {
+    const decoded = verifyToken(h.slice(7))
+    return { id: decoded.sub, email: decoded.email }
+  } catch {
+    return null
+  }
+}
+
+/** 오렌지 파이 등 기기용 GET — CONNECT_DEVICE_API_KEY 와 비교 */
+function deviceConnectApiKeyOk(req) {
+  if (!CONNECT_DEVICE_API_KEY) return false
+  const auth = req.headers.authorization
+  const x = req.headers['x-connect-device-key']
+  const token =
+    typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7) : x
+  if (typeof token !== 'string' || !token) return false
+  const a = Buffer.from(CONNECT_DEVICE_API_KEY, 'utf8')
+  const b = Buffer.from(token, 'utf8')
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
 }
 
 /** 회원가입 */
@@ -568,6 +596,80 @@ app.get('/api/devices/:deviceSn/qr', async (req, res) => {
     console.error(e)
     res.status(500).json({ error: 'qr generation failed' })
   }
+})
+
+/**
+ * 소울트레이스 → 커넥트 편지 저장 (Supabase connect_letters)
+ * POST { user_email, letter_content, device_id? } — 선택적으로 Authorization: Bearer JWT
+ */
+app.post('/api/connect/letters', async (req, res) => {
+  const user_email = req.body?.user_email
+  const letter_content = req.body?.letter_content
+  const device_id = req.body?.device_id
+  if (!user_email || typeof user_email !== 'string' || !user_email.includes('@')) {
+    return res.status(400).json({ error: '올바른 user_email이 필요합니다.' })
+  }
+  if (letter_content === undefined || letter_content === null || typeof letter_content !== 'string') {
+    return res.status(400).json({ error: 'letter_content가 필요합니다.' })
+  }
+  if (letter_content.length > 100_000) {
+    return res.status(413).json({ error: 'letter_content too long' })
+  }
+  const authUser = tryAuthUser(req)
+  let user_id = null
+  if (authUser && /^[0-9a-f-]{36}$/i.test(authUser.id)) {
+    user_id = authUser.id
+  }
+  const did =
+    device_id === undefined || device_id === null || device_id === ''
+      ? null
+      : String(device_id)
+  if (did !== null && !validateDeviceSn(did)) {
+    return res.status(400).json({ error: 'device_id 형식이 올바르지 않습니다.' })
+  }
+  const result = await insertConnectLetter({
+    user_email,
+    letter_content,
+    device_id: did,
+    user_id,
+  })
+  if (!result.ok) {
+    if (result.error === 'supabase_not_configured') {
+      return res.status(503).json({ error: 'Supabase가 서버에 설정되지 않았습니다.' })
+    }
+    return res.status(500).json({ error: result.error })
+  }
+  res.status(201).json({
+    ok: true,
+    id: result.id,
+    created_at: result.created_at,
+  })
+})
+
+/**
+ * 기기(오렌지 파이 등)가 device_id 기준 편지 목록 조회
+ * GET /api/connect/letters?device_id=EB-xxx
+ * Header: Authorization: Bearer <CONNECT_DEVICE_API_KEY> 또는 X-Connect-Device-Key
+ */
+app.get('/api/connect/letters', async (req, res) => {
+  if (!CONNECT_DEVICE_API_KEY) {
+    return res.status(503).json({ error: 'CONNECT_DEVICE_API_KEY가 서버에 설정되지 않았습니다.' })
+  }
+  if (!deviceConnectApiKeyOk(req)) {
+    return res.status(401).json({ error: '기기 API 키가 올바르지 않습니다.' })
+  }
+  const device_id = req.query?.device_id
+  if (!device_id || typeof device_id !== 'string' || !validateDeviceSn(device_id)) {
+    return res.status(400).json({ error: 'device_id 쿼리가 필요합니다.' })
+  }
+  const out = await listConnectLettersByDevice(device_id)
+  if (!out.ok) {
+    if (out.error === 'supabase_not_configured') {
+      return res.status(503).json({ error: 'Supabase가 서버에 설정되지 않았습니다.' })
+    }
+    return res.status(500).json({ error: out.error })
+  }
+  res.json({ letters: out.letters })
 })
 
 app.get('/api/health', (_req, res) => {
