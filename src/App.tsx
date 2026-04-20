@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import { LetterSavedConfirmation } from './components/LetterSavedConfirmation'
 import { MobileEmotionFunnel } from './components/MobileEmotionFunnel'
 import { SoftArchivePrompt } from './components/anonymous/SoftArchivePrompt'
 import { saveConnectLetter } from './lib/connectLettersApi'
 import { resolveActiveAnonId } from './lib/anonymousSession'
-import { startTossTestCheckout } from './lib/tossCheckout'
 import {
   type SoulTracePayload,
   syncSoulTraceFromSearchParams,
@@ -23,6 +22,7 @@ import { TossPaymentSuccessPage } from './pages/TossPaymentSuccessPage'
 
 function Landing() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const activeAnonId = resolveActiveAnonId(searchParams)
   const [soul, setSoul] = useState<SoulTracePayload>(() => {
     if (typeof window === 'undefined') {
@@ -79,7 +79,8 @@ function Landing() {
 
   const handleSubscriptionOnly = async (email: string) => {
     await trySaveSoulLetter()
-    await startTossTestCheckout(email)
+    // 테스트 모드: 결제창을 건너뛰고 바로 편지 화면으로 진입
+    navigate(`/subscription?email=${encodeURIComponent(email)}`)
   }
 
   return (

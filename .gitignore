@@ -25,3 +25,5 @@ dist-ssr
 
 # Local device message store (API)
 data/
+
+.vercel
