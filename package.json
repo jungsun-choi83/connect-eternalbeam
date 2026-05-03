@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently -k \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
-    "dev:server": "node server/index.mjs",
+    "dev:server": "cross-env CONNECT_DEV_SUBSCRIPTION=1 node server/index.mjs",
     "build": "tsc -b && vite build",
     "ci": "npm run lint && npm run build",
     "start": "node server/index.mjs",
@@ -33,6 +33,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",

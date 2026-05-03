@@ -11,7 +11,26 @@ const dbPath = path.join(dataDir, 'db.json')
  * @typedef {{ email: string, password_hash: string, created_at: number, phone?: string, display_name?: string, oauth_provider?: string, order_auto?: boolean }} UserRow
  * @typedef {{ owner_id: string | null, latest_message: string, updated_at: number }} DeviceRow
  * @typedef {{ letters: { id: string, text: string, created_at: number }[], created_at: number, updated_at: number }} AnonSession
- * @typedef {{ users: Record<string, UserRow>, devices: Record<string, DeviceRow>, anonymous: Record<string, AnonSession>, user_letters: Record<string, { id: string, text: string, created_at: number, migrated_from_anon?: string }[]> }} DbShape
+ * @typedef {{ active: boolean, since: number }} SubscriptionRow
+ * @typedef {{ id: string, source: 'soultrace' | 'monthly', body: string, arrived_at: number, title?: string, cycle_index?: number }} ArchiveEntry
+ * @typedef {{ id: string, data_url: string, created_at: number }} SubscriberPhoto
+ * @typedef {{ id: string, date_iso: string, text: string, created_at: number }} SubscriberMemory
+ * @typedef {{
+ *   child_name: string,
+ *   profile_photo: string | null,
+ *   archive_entries: ArchiveEntry[],
+ *   soultrace_imported: boolean,
+ *   photos: SubscriberPhoto[],
+ *   memories: SubscriberMemory[],
+ * }} SubscriberDashboardRow
+ * @typedef {{
+ *   users: Record<string, UserRow>,
+ *   devices: Record<string, DeviceRow>,
+ *   anonymous: Record<string, AnonSession>,
+ *   user_letters: Record<string, { id: string, text: string, created_at: number, migrated_from_anon?: string }[]>,
+ *   subscriptions: Record<string, SubscriptionRow>,
+ *   subscriber_dashboard: Record<string, SubscriberDashboardRow>,
+ * }} DbShape
  */
 
 function normalize(/** @type {Partial<DbShape>} */ j) {
@@ -19,7 +38,26 @@ function normalize(/** @type {Partial<DbShape>} */ j) {
   if (!j.devices) j.devices = {}
   if (!j.anonymous) j.anonymous = {}
   if (!j.user_letters) j.user_letters = {}
+  if (!j.subscriptions) j.subscriptions = {}
+  if (!j.subscriber_dashboard) j.subscriber_dashboard = {}
   return /** @type {DbShape} */ (j)
+}
+
+/** @param {string} email */
+function normEmail(email) {
+  return email.trim().toLowerCase()
+}
+
+/** @returns {SubscriberDashboardRow} */
+function defaultSubscriberDashboard() {
+  return {
+    child_name: '우리 아이',
+    profile_photo: null,
+    archive_entries: [],
+    soultrace_imported: false,
+    photos: [],
+    memories: [],
+  }
 }
 
 function load() {
@@ -245,4 +283,189 @@ export function listDevicesByOwner(userId) {
   }
   out.sort((a, b) => a.device_sn.localeCompare(b.device_sn))
   return out
+}
+
+/** @param {string} email */
+export function getSubscriptionByEmail(email) {
+  const data = load()
+  const e = normEmail(email)
+  return data.subscriptions[e] ?? null
+}
+
+/**
+ * @param {string} email
+ * @param {boolean} [active]
+ */
+export function setSubscriptionActive(email, active = true) {
+  const data = load()
+  const e = normEmail(email)
+  const existing = data.subscriptions[e]
+  if (!active) {
+    data.subscriptions[e] = { active: false, since: existing?.since ?? Date.now() }
+  } else {
+    const since = existing?.active ? existing.since : Date.now()
+    data.subscriptions[e] = { active: true, since }
+  }
+  save(data)
+  return data.subscriptions[e]
+}
+
+/** @param {string} userId */
+export function getSubscriberDashboardRow(userId) {
+  const data = load()
+  if (!data.subscriber_dashboard[userId]) {
+    data.subscriber_dashboard[userId] = defaultSubscriberDashboard()
+    save(data)
+  }
+  return data.subscriber_dashboard[userId]
+}
+
+/**
+ * @param {string} userId
+ * @param {Partial<Pick<SubscriberDashboardRow, 'child_name' | 'profile_photo'>>} patch
+ */
+export function patchSubscriberProfile(userId, patch) {
+  const data = load()
+  const row = getSubscriberDashboardRow(userId)
+  if (typeof patch.child_name === 'string' && patch.child_name.trim()) {
+    row.child_name = patch.child_name.trim().slice(0, 80)
+  }
+  if (patch.profile_photo === null) {
+    row.profile_photo = null
+  } else if (typeof patch.profile_photo === 'string') {
+    row.profile_photo = patch.profile_photo.slice(0, 2_500_000)
+  }
+  data.subscriber_dashboard[userId] = row
+  save(data)
+  return row
+}
+
+/**
+ * @param {string} userId
+ * @param {SubscriberPhoto} photo
+ */
+export function addSubscriberPhoto(userId, photo) {
+  const data = load()
+  const row = getSubscriberDashboardRow(userId)
+  row.photos.push(photo)
+  data.subscriber_dashboard[userId] = row
+  save(data)
+}
+
+/** @param {string} userId @param {string} photoId */
+export function removeSubscriberPhoto(userId, photoId) {
+  const data = load()
+  const row = getSubscriberDashboardRow(userId)
+  row.photos = row.photos.filter((p) => p.id !== photoId)
+  data.subscriber_dashboard[userId] = row
+  save(data)
+}
+
+/**
+ * @param {string} userId
+ * @param {SubscriberMemory} memory
+ */
+export function addSubscriberMemory(userId, memory) {
+  const data = load()
+  const row = getSubscriberDashboardRow(userId)
+  row.memories.push(memory)
+  data.subscriber_dashboard[userId] = row
+  save(data)
+}
+
+/** @param {string} userId @param {string} memoryId */
+export function removeSubscriberMemory(userId, memoryId) {
+  const data = load()
+  const row = getSubscriberDashboardRow(userId)
+  row.memories = row.memories.filter((m) => m.id !== memoryId)
+  data.subscriber_dashboard[userId] = row
+  save(data)
+}
+
+const MONTHLY_CYCLE_MS = 30 * 24 * 60 * 60 * 1000
+
+/** @param {number} cycleIndex */
+function monthlyLetterBody(cycleIndex) {
+  const lines = [
+    '오늘도 너를 생각하며 조용히 이름을 불러 보았어.\n너의 빛나던 순간들이 아직도 마음 한쪽에 부드럽게 남아 있어.',
+    '바람이 살랑일 때마다, 네가 좋아하던 그 길을 함께 걷던 기억이 떠올라.\n그 시간들이 나에게는 가장 따뜻한 선물이야.',
+    '가끔 하늘을 보면 네가 웃던 얼굴이 겹쳐 보여.\n그 미소가 여전히 나를 포근하게 감싸 줘.',
+    '오늘은 너와 나눴던 작은 일상이 그리워.\n그 소소한 행복이 얼마나 큰 힘이었는지 이제야 더 선명해져.',
+    '밤이 되면 별빛 아래에서 네 이야기를 조용히 떠올려.\n멀리 있어도 마음만은 늘 곁에 있는 것 같아.',
+  ]
+  return lines[cycleIndex % lines.length] ?? lines[0]
+}
+
+/**
+ * Soultrace 첫 편지 + 30일 주기 월간 편지를 반영합니다.
+ * @param {string} userId
+ * @param {string} userEmail
+ * @param {() => { id: string, text: string, created_at: number }[]} getLetters
+ */
+export function syncSubscriberArchiveFromSources(userId, userEmail, getLetters) {
+  const sub = getSubscriptionByEmail(userEmail)
+  const data = load()
+  const row = getSubscriberDashboardRow(userId)
+  const now = Date.now()
+
+  if (!row.soultrace_imported) {
+    const letters = getLetters()
+    if (letters.length > 0) {
+      const sorted = [...letters].sort((a, b) => a.created_at - b.created_at)
+      const first = sorted[0]
+      const dup = row.archive_entries.some(
+        (e) => e.source === 'soultrace' && e.body === first.text && e.arrived_at === first.created_at,
+      )
+      if (!dup) {
+        row.archive_entries.push({
+          id: randomUUID(),
+          source: 'soultrace',
+          body: first.text,
+          arrived_at: first.created_at,
+          title: '소울트레이스에서 온 첫 편지',
+        })
+      }
+      row.soultrace_imported = true
+    }
+  }
+
+  if (sub?.active) {
+    let c = 0
+    while (c < 240) {
+      const releaseAt = sub.since + c * MONTHLY_CYCLE_MS
+      if (releaseAt > now) break
+      const exists = row.archive_entries.some(
+        (e) => e.source === 'monthly' && e.cycle_index === c,
+      )
+      if (!exists) {
+        row.archive_entries.push({
+          id: randomUUID(),
+          source: 'monthly',
+          body: monthlyLetterBody(c),
+          arrived_at: releaseAt,
+          title: c === 0 ? '구독으로 이어지는 첫 편지' : `함께한 ${c + 1}번째 달의 편지`,
+          cycle_index: c,
+        })
+      }
+      c++
+    }
+  }
+
+  data.subscriber_dashboard[userId] = row
+  save(data)
+  return row
+}
+
+/**
+ * @param {string} userEmail
+ * @param {number} now
+ */
+export function computeNextLetterEtaMs(userEmail, now = Date.now()) {
+  const sub = getSubscriptionByEmail(userEmail)
+  if (!sub?.active) return null
+  const elapsed = now - sub.since
+  const nextIdx = Math.floor(elapsed / MONTHLY_CYCLE_MS) + 1
+  const nextAt = sub.since + nextIdx * MONTHLY_CYCLE_MS
+  if (nextAt > now) return nextAt - now
+  return null
 }

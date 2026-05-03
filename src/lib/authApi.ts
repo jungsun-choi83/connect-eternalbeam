@@ -5,6 +5,30 @@ const base = () => getApiBase()
 
 export type AuthUser = { id: string; email: string }
 
+export type SubscriptionState = { active: boolean; since: number | null }
+
+export type MeResponse = {
+  id: string
+  email: string
+  created_at: number
+  phone?: string | null
+  display_name?: string | null
+  subscription: SubscriptionState
+}
+
+export async function fetchMe(): Promise<MeResponse | null> {
+  const token = getAuthToken()
+  if (!token) return null
+  const res = await fetch(`${base()}/api/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) {
+    if (res.status === 401) clearAuthToken()
+    return null
+  }
+  return res.json() as Promise<MeResponse>
+}
+
 export async function bindAnonymousToAccount(anonId: string): Promise<{ migrated: number }> {
   const token = getAuthToken()
   if (!token) throw new Error('LOGIN_REQUIRED')

@@ -20,6 +20,16 @@ import {
   getAnonymousSession,
   bindAnonymousToUser,
   getUserLetters,
+  getSubscriptionByEmail,
+  setSubscriptionActive,
+  getSubscriberDashboardRow,
+  patchSubscriberProfile,
+  addSubscriberPhoto,
+  removeSubscriberPhoto,
+  addSubscriberMemory,
+  removeSubscriberMemory,
+  syncSubscriberArchiveFromSources,
+  computeNextLetterEtaMs,
 } from './db.mjs'
 import {
   hashPassword,
@@ -68,6 +78,10 @@ const KAKAO_REST_API_KEY = process.env.KAKAO_REST_API_KEY || ''
 const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET || ''
 const CONNECT_DEVICE_API_KEY = process.env.CONNECT_DEVICE_API_KEY || ''
 const PUSH_DELIVERY_WEBHOOK = process.env.PUSH_DELIVERY_WEBHOOK || ''
+/** 로컬 테스트: 결제 없이 구독 활성화 API 허용 (CONNECT_DEV_SUBSCRIPTION=1) */
+const CONNECT_DEV_SUBSCRIPTION =
+  process.env.CONNECT_DEV_SUBSCRIPTION === '1' ||
+  process.env.CONNECT_DEV_SUBSCRIPTION === 'true'
 
 const ANON_ID_RE = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$|^[a-zA-Z0-9_-]{8,128}$/
 
@@ -83,7 +97,7 @@ app.use(
     credentials: true,
   }),
 )
-app.use(express.json({ limit: '512kb' }))
+app.use(express.json({ limit: '2mb' }))
 
 /** @type {Map<string, Set<import('express').Response>>} */
 const sseSubscribers = new Map()
@@ -389,12 +403,16 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/me', authMiddleware, (req, res) => {
   const u = findUserById(req.user.id)
   if (!u) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+  const sub = getSubscriptionByEmail(u.email)
   res.json({
     id: u.id,
     email: u.email,
     created_at: u.created_at,
     phone: u.phone ?? null,
     display_name: u.display_name ?? null,
+    subscription: sub?.active
+      ? { active: true, since: sub.since }
+      : { active: false, since: sub?.since ?? null },
   })
 })
 
@@ -408,6 +426,145 @@ app.get('/api/me/devices', authMiddleware, (req, res) => {
 app.get('/api/me/letters', authMiddleware, (req, res) => {
   const letters = getUserLetters(req.user.id)
   res.json({ letters })
+})
+
+/** 토스 등 결제 완료 후 구독 활성화 (클라이언트에서 orderId와 함께 호출) */
+app.post('/api/subscription/activate-from-checkout', (req, res) => {
+  const email = req.body?.email
+  const orderId = req.body?.orderId
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return res.status(400).json({ error: '올바른 이메일이 필요합니다.' })
+  }
+  if (!orderId || typeof orderId !== 'string' || orderId.trim().length < 4) {
+    return res.status(400).json({ error: 'orderId가 필요합니다.' })
+  }
+  setSubscriptionActive(email.trim(), true)
+  res.json({ ok: true })
+})
+
+/**
+ * 결제 없이 구독 테스트 — 프로덕션에서 비활성화. CONNECT_DEV_SUBSCRIPTION=1 일 때만.
+ * 로그인한 본인 계정만 활성화됩니다.
+ */
+app.post('/api/subscription/dev-activate', authMiddleware, (req, res) => {
+  if (!CONNECT_DEV_SUBSCRIPTION) {
+    return res.status(404).json({ error: 'not_found' })
+  }
+  const u = findUserById(req.user.id)
+  if (!u) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+  setSubscriptionActive(u.email, true)
+  res.json({ ok: true, email: u.email })
+})
+
+/** 구독자 전용 대시보드 */
+app.get('/api/subscriber/dashboard', authMiddleware, (req, res) => {
+  const u = findUserById(req.user.id)
+  if (!u) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+  const sub = getSubscriptionByEmail(u.email)
+  if (!sub?.active) {
+    return res.status(403).json({ error: '구독이 필요합니다.', code: 'SUBSCRIPTION_REQUIRED' })
+  }
+  syncSubscriberArchiveFromSources(req.user.id, u.email, () => getUserLetters(req.user.id))
+  const row = getSubscriberDashboardRow(req.user.id)
+  const archiveSorted = [...row.archive_entries].sort((a, b) => b.arrived_at - a.arrived_at)
+  const monthly = archiveSorted.filter((e) => e.source === 'monthly')
+  const latestMonthly = monthly[0] ?? null
+  const eta = computeNextLetterEtaMs(u.email)
+  res.json({
+    child_name: row.child_name,
+    profile_photo: row.profile_photo,
+    archive_entries: archiveSorted,
+    photos: [...row.photos].sort((a, b) => b.created_at - a.created_at),
+    memories: [...row.memories].sort((a, b) => b.created_at - a.created_at),
+    subscription: { active: true, since: sub.since },
+    next_letter_eta_ms: eta,
+    latest_monthly: latestMonthly,
+  })
+})
+
+app.patch('/api/subscriber/dashboard/profile', authMiddleware, (req, res) => {
+  const u = findUserById(req.user.id)
+  if (!u) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+  const sub = getSubscriptionByEmail(u.email)
+  if (!sub?.active) {
+    return res.status(403).json({ error: '구독이 필요합니다.', code: 'SUBSCRIPTION_REQUIRED' })
+  }
+  const child_name = req.body?.child_name
+  const profile_photo = req.body?.profile_photo
+  const patch = {}
+  if (typeof child_name === 'string') patch.child_name = child_name
+  if (profile_photo === null || typeof profile_photo === 'string') patch.profile_photo = profile_photo
+  const row = patchSubscriberProfile(req.user.id, patch)
+  res.json({
+    child_name: row.child_name,
+    profile_photo: row.profile_photo,
+  })
+})
+
+app.post('/api/subscriber/dashboard/photos', authMiddleware, (req, res) => {
+  const u = findUserById(req.user.id)
+  if (!u) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+  const sub = getSubscriptionByEmail(u.email)
+  if (!sub?.active) {
+    return res.status(403).json({ error: '구독이 필요합니다.', code: 'SUBSCRIPTION_REQUIRED' })
+  }
+  const dataUrl = req.body?.data_url
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
+    return res.status(400).json({ error: 'data:image 형식의 사진이 필요합니다.' })
+  }
+  if (dataUrl.length > 2_200_000) {
+    return res.status(413).json({ error: '파일이 너무 큽니다.' })
+  }
+  const photo = { id: randomUUID(), data_url: dataUrl, created_at: Date.now() }
+  addSubscriberPhoto(req.user.id, photo)
+  res.status(201).json({ photo })
+})
+
+app.delete('/api/subscriber/dashboard/photos/:id', authMiddleware, (req, res) => {
+  const u = findUserById(req.user.id)
+  if (!u) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+  const sub = getSubscriptionByEmail(u.email)
+  if (!sub?.active) {
+    return res.status(403).json({ error: '구독이 필요합니다.', code: 'SUBSCRIPTION_REQUIRED' })
+  }
+  removeSubscriberPhoto(req.user.id, req.params.id)
+  res.json({ ok: true })
+})
+
+app.post('/api/subscriber/dashboard/memories', authMiddleware, (req, res) => {
+  const u = findUserById(req.user.id)
+  if (!u) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+  const sub = getSubscriptionByEmail(u.email)
+  if (!sub?.active) {
+    return res.status(403).json({ error: '구독이 필요합니다.', code: 'SUBSCRIPTION_REQUIRED' })
+  }
+  const date_iso = req.body?.date_iso
+  const text = req.body?.text
+  if (!date_iso || typeof date_iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date_iso.trim())) {
+    return res.status(400).json({ error: '날짜는 YYYY-MM-DD 형식이어야 합니다.' })
+  }
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: '기억 내용이 필요합니다.' })
+  }
+  const memory = {
+    id: randomUUID(),
+    date_iso: date_iso.trim(),
+    text: text.trim().slice(0, 4000),
+    created_at: Date.now(),
+  }
+  addSubscriberMemory(req.user.id, memory)
+  res.status(201).json({ memory })
+})
+
+app.delete('/api/subscriber/dashboard/memories/:id', authMiddleware, (req, res) => {
+  const u = findUserById(req.user.id)
+  if (!u) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+  const sub = getSubscriptionByEmail(u.email)
+  if (!sub?.active) {
+    return res.status(403).json({ error: '구독이 필요합니다.', code: 'SUBSCRIPTION_REQUIRED' })
+  }
+  removeSubscriberMemory(req.user.id, req.params.id)
+  res.json({ ok: true })
 })
 
 /**

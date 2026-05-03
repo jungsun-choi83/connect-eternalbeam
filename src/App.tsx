@@ -3,10 +3,12 @@ import { BrowserRouter, Route, Routes, useNavigate, useSearchParams } from 'reac
 import { LetterSavedConfirmation } from './components/LetterSavedConfirmation'
 import { MobileEmotionFunnel } from './components/MobileEmotionFunnel'
 import { SoftArchivePrompt } from './components/anonymous/SoftArchivePrompt'
+import { TagStartExperience } from './components/tag/TagStartExperience'
 import { saveConnectLetter } from './lib/connectLettersApi'
 import { resolveActiveAnonId } from './lib/anonymousSession'
-import { startTossUpsellCheckout } from './lib/tossCheckout'
+import { resolveSourceFromLocation, runSourceResolverChecks } from './lib/sourceResolver'
 import {
+  safeDecodeParam,
   type SoulTracePayload,
   syncSoulTraceFromSearchParams,
 } from './lib/soulTraceIngest'
@@ -17,7 +19,9 @@ import { OAuthKakaoCallbackPage } from './pages/OAuthKakaoCallback'
 import { QrToolPage } from './pages/QrToolPage'
 import { RegisterDevicePage } from './pages/RegisterDevicePage'
 import { RegisterSerialPage } from './pages/RegisterSerialPage'
+import { PlaqueDetailPage } from './pages/PlaqueDetailPage'
 import { SubscriptionEmotionPage } from './pages/SubscriptionEmotionPage'
+import { SubscriptionHubPage } from './pages/SubscriptionHubPage'
 import { TossPaymentFailPage } from './pages/TossPaymentFailPage'
 import { TossPaymentSuccessPage } from './pages/TossPaymentSuccessPage'
 
@@ -25,8 +29,19 @@ function Landing() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const activeAnonId = resolveActiveAnonId(searchParams)
+  const source = resolveSourceFromLocation(searchParams)
+  const isTagSource = source === 'tag'
+  const entry = safeDecodeParam(searchParams.get('entry'))?.toLowerCase() ?? null
+  const isTagEntry = entry === 'tag'
+  const petName =
+    safeDecodeParam(searchParams.get('petName')) ??
+    safeDecodeParam(searchParams.get('name')) ??
+    null
   const [soul, setSoul] = useState<SoulTracePayload>(() => {
     if (typeof window === 'undefined') {
+      return { letter: null, email: null, deviceId: null }
+    }
+    if (isTagSource || isTagEntry) {
       return { letter: null, email: null, deviceId: null }
     }
     return syncSoulTraceFromSearchParams(new URLSearchParams(window.location.search))
@@ -34,8 +49,21 @@ function Landing() {
   const [letterSaved, setLetterSaved] = useState(false)
 
   useEffect(() => {
+    runSourceResolverChecks()
+  }, [])
+
+  useEffect(() => {
+    // source=tag 디버깅을 위한 확인 로그
+    console.log("source:", source)
+  }, [source])
+
+  useEffect(() => {
+    if (isTagSource || isTagEntry) {
+      setSoul({ letter: null, email: null, deviceId: null })
+      return
+    }
     setSoul(syncSoulTraceFromSearchParams(searchParams))
-  }, [searchParams])
+  }, [isTagEntry, isTagSource, searchParams])
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams)
@@ -80,24 +108,43 @@ function Landing() {
 
   const handleSubscriptionOnly = async (email: string) => {
     await trySaveSoulLetter()
-    // 테스트 모드: 결제창을 건너뛰고 바로 편지 화면으로 진입
-    navigate(`/subscription?email=${encodeURIComponent(email)}`)
+    const next = new URLSearchParams()
+    if (email.trim()) next.set('email', email.trim())
+    if (isTagEntry) {
+      next.set('entry', 'tag')
+      if (petName?.trim()) next.set('petName', petName.trim())
+    }
+    navigate(`/subscription${next.toString() ? `?${next.toString()}` : ''}`)
   }
 
   const handleUpgrade = async (email: string) => {
     await trySaveSoulLetter()
-    await startTossUpsellCheckout(email)
+    const next = new URLSearchParams()
+    if (email.trim()) next.set('email', email.trim())
+    if (isTagEntry) {
+      next.set('entry', 'tag')
+      if (petName?.trim()) next.set('petName', petName.trim())
+    }
+    navigate(`/plaque${next.toString() ? `?${next.toString()}` : ''}`)
   }
 
   return (
     <div className="min-h-dvh text-white">
       <LetterSavedConfirmation visible={letterSaved} />
-      <MobileEmotionFunnel
-        payload={soul}
-        onStartSubscription={handleSubscriptionOnly}
-        onUpgrade={handleUpgrade}
-      />
-      <SoftArchivePrompt anonId={activeAnonId} />
+      {isTagSource ? (
+        <TagStartExperience petName={petName} />
+      ) : (
+        <>
+          <MobileEmotionFunnel
+            payload={soul}
+            entry={entry}
+            petName={petName}
+            onStartSubscription={handleSubscriptionOnly}
+            onUpgrade={handleUpgrade}
+          />
+          <SoftArchivePrompt anonId={activeAnonId} />
+        </>
+      )}
     </div>
   )
 }
@@ -147,6 +194,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/main" element={<Landing />} />
           <Route path="/connect/:id" element={<Landing />} />
           <Route path="/display/:deviceSn" element={<DisplayPage />} />
           <Route path="/register/:serial" element={<RegisterSerialPage />} />
@@ -156,7 +204,9 @@ function App() {
           <Route path="/oauth/kakao/callback" element={<OAuthKakaoCallbackPage />} />
           <Route path="/payments/toss/success" element={<TossPaymentSuccessPage />} />
           <Route path="/payments/toss/fail" element={<TossPaymentFailPage />} />
-          <Route path="/subscription" element={<SubscriptionEmotionPage />} />
+          <Route path="/subscription" element={<SubscriptionHubPage />} />
+          <Route path="/subscription/reply" element={<SubscriptionEmotionPage />} />
+        <Route path="/plaque" element={<PlaqueDetailPage />} />
           <Route path="/tools/qr/:deviceSn" element={<QrToolPage />} />
         </Routes>
       </BrowserRouter>

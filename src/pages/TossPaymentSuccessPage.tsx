@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { startTossUpsellCheckout } from '../lib/tossCheckout'
 import { ST_KEY_EMAIL, STORAGE_EMAIL } from '../lib/soulTraceIngest'
+import { activateSubscriptionFromCheckout } from '../lib/subscriberApi'
 
 export function TossPaymentSuccessPage() {
   const [params] = useSearchParams()
@@ -35,13 +36,18 @@ export function TossPaymentSuccessPage() {
 
   useEffect(() => {
     if (flow !== 'subscription') return
+    if (email && orderId && orderId !== '-') {
+      void activateSubscriptionFromCheckout(email, orderId).catch(() => {
+        /* 서버 연결 실패 시에도 이동 */
+      })
+    }
     const timer = window.setTimeout(() => {
       window.location.href = email
         ? `/subscription?email=${encodeURIComponent(email)}`
         : '/subscription'
     }, 700)
     return () => window.clearTimeout(timer)
-  }, [flow, email])
+  }, [flow, email, orderId])
 
   if (flow === 'upsell') {
     return (

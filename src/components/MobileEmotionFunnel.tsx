@@ -1,11 +1,14 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef, useState, type TouchEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
+import { Link } from 'react-router-dom'
 import type { SoulTracePayload } from '../lib/soulTraceIngest'
 
 type Props = {
   payload: SoulTracePayload
   onStartSubscription?: (email: string) => void | Promise<void>
   onUpgrade?: (email: string) => void | Promise<void>
+  entry?: string | null
+  petName?: string | null
 }
 
 const fadeIn = {
@@ -16,13 +19,19 @@ const fadeIn = {
 
 const SLIDE_COUNT = 2
 
-export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }: Props) {
+function buildTagStarterStory(petName: string | null): string {
+  const name = petName?.trim() || '이 아이'
+  return `오늘 도착한 이야기\n\n${name}가 이제 막 문을 열고, 첫 마음을 전해요.\n\n"오늘부터는 내 이야기가,\n여기서 천천히 이어질 거예요."`
+}
+
+export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade, entry, petName }: Props) {
   const [activeSlide, setActiveSlide] = useState(0)
   const [touchStartX, setTouchStartX] = useState<number | null>(null)
   const [email, setEmail] = useState(payload.email ?? '')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const sliderRef = useRef<HTMLDivElement | null>(null)
   const confirmTimerRef = useRef<number | null>(null)
+  const isTagEntry = entry === 'tag'
 
   useEffect(() => {
     setEmail(payload.email ?? '')
@@ -36,7 +45,10 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
     }
   }, [])
 
-  const letter = payload.letter?.trim() || '아직 도착한 편지가 없습니다.'
+  const letter = useMemo(() => {
+    if (isTagEntry) return buildTagStarterStory(petName ?? null)
+    return payload.letter?.trim() || '아직 도착한 편지가 없습니다.'
+  }, [isTagEntry, payload.letter, petName])
 
   const goToSlide = (index: number) => {
     const bounded = Math.max(0, Math.min(SLIDE_COUNT - 1, index))
@@ -61,7 +73,7 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
   }
 
   const requestSubscriptionConfirm = () => {
-    if (!email.trim()) {
+    if (!isTagEntry && !email.trim()) {
       window.alert('다시 이어가기 위한 이메일을 남겨 주세요.')
       return
     }
@@ -75,17 +87,22 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
   }
 
   const submitSubscription = async () => {
-    await onStartSubscription?.(email.trim())
+    await onStartSubscription?.(email.trim() || '')
     setConfirmOpen(false)
   }
 
   const submitUpgrade = async () => {
-    if (!email.trim()) {
+    if (!isTagEntry && !email.trim()) {
       window.alert('구매 진행을 위해 이메일을 남겨 주세요.')
       return
     }
-    await onUpgrade?.(email.trim())
+    await onUpgrade?.(email.trim() || '')
   }
+
+  const subscriptionHref =
+    email.trim().length > 0
+      ? `/subscription?email=${encodeURIComponent(email.trim())}`
+      : '/subscription'
 
   return (
     <main className="aurora-page min-h-dvh overflow-hidden bg-black text-white">
@@ -113,7 +130,7 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
         <section className="flex h-dvh w-full shrink-0 flex-col px-6 pb-8 pt-12 sm:px-10">
           <motion.div key={`s1-${activeSlide}`} {...fadeIn} className="fade-up flex h-full flex-col">
             <p className="fade-up text-center font-sans text-[11px] uppercase tracking-[0.34em] text-[#D4AF37]/75">
-              소울트레이스에서 도착한 편지
+              {isTagEntry ? '지금, 처음 도착한 이야기' : '소울트레이스에서 도착한 편지'}
             </p>
             <div className="mt-6 flex-1 overflow-hidden border border-[#D4AF37]/18 bg-black/45 px-5 py-6 sm:px-8 sm:py-8">
               <p className="h-full overflow-auto whitespace-pre-wrap font-sans text-[15px] leading-[1.95] text-white/86">
@@ -148,7 +165,7 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
               이제, 원하는 방식으로{'\n'}이어갈 수 있어요
             </h2>
             <p className="fade-up mt-8 whitespace-pre-line text-center font-serif text-[1.02rem] leading-relaxed text-white/78">
-              {'막힘 없이 바로 간직하거나,\n천천히 계속 받아볼 수 있어요'}
+              {'지금 이 마음을 곁에 간직하거나,\n하루하루 새로운 이야기를 이어갈 수 있어요'}
             </p>
             <div className="mt-6 rounded-md border border-[#D4AF37]/25 bg-black/45 px-4 py-4">
               <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-[#D4AF37]/70">Option 1</p>
@@ -165,7 +182,10 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
             <div className="mt-4 rounded-md border border-white/12 bg-black/30 px-4 py-4">
               <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-white/45">Option 2</p>
               <p className="mt-2 font-serif text-[1.02rem] text-white/78">아이의 메시지를 계속 받아보기</p>
-              <p className="mt-1 font-sans text-xs text-white/50">₩5,900 / 월</p>
+              <p className="mt-2 font-sans text-[12px] leading-relaxed text-white/50">
+                매달 편지·사진 앨범·함께한 날 기록·편지 아카이브까지, 구독자 전용 공간에서 이어가요.
+              </p>
+              <p className="mt-2 font-sans text-xs text-[#D4AF37]/85">₩5,900 / 월</p>
               <button
                 type="button"
                 onClick={requestSubscriptionConfirm}
@@ -173,6 +193,24 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade }:
               >
                 아이의 메시지를 계속 받아보기
               </button>
+            </div>
+
+            <div className="mt-5 rounded-md border border-[#D4AF37]/35 bg-gradient-to-b from-[#D4AF37]/10 to-black/50 px-4 py-4">
+              <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#D4AF37]/90">
+                구독자 전용
+              </p>
+              <p className="mt-2 font-serif text-[1.05rem] leading-snug text-[#D4AF37]">
+                편지·앨범·기억을 모아 보는 대시보드
+              </p>
+              <p className="mt-2 font-sans text-[12px] leading-relaxed text-white/60">
+                로그인 후 이용합니다. 이메일은 첫 화면 입력값과 함께 연결돼요.
+              </p>
+              <Link
+                to={subscriptionHref}
+                className="mt-4 flex w-full items-center justify-center border border-[#D4AF37]/55 bg-[#D4AF37]/14 px-5 py-3.5 font-serif text-[0.98rem] tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/22"
+              >
+                구독자 대시보드 열기 →
+              </Link>
             </div>
           </motion.div>
         </section>
