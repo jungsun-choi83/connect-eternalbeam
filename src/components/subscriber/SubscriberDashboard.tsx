@@ -15,9 +15,9 @@ import {
 type Tab = 'letters' | 'album' | 'memories' | 'archive'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'letters', label: '편지 도착' },
+  { id: 'letters', label: '매달 편지 도착' },
   { id: 'album', label: '사진 앨범' },
-  { id: 'memories', label: '기억 기록' },
+  { id: 'memories', label: '날짜·기억 기록' },
   { id: 'archive', label: '편지 아카이브' },
 ]
 

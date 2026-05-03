@@ -168,22 +168,26 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade, e
               {'지금 이 마음을 곁에 간직하거나,\n하루하루 새로운 이야기를 이어갈 수 있어요'}
             </p>
             <div className="mt-6 rounded-md border border-[#D4AF37]/25 bg-black/45 px-4 py-4">
-              <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-[#D4AF37]/70">Option 1</p>
+              <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-[#D4AF37]/75">
+                OPTION 1 — 명패 구매
+              </p>
               <p className="mt-2 font-serif text-[1.1rem] text-[#D4AF37]">이 메시지를 눈앞에서 만나기</p>
-              <p className="mt-2 font-sans text-sm text-white/65">이잉크 기반 아크릴 명패로 지금 바로 주문</p>
+              <p className="mt-2 font-sans text-sm text-white/65">잉크 기반 아크릴 명패로 주문하실 수 있어요.</p>
               <button
                 type="button"
                 onClick={submitUpgrade}
                 className="aurora-button mt-4 w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 px-5 py-3.5 font-serif text-[1.02rem] tracking-wide text-[#D4AF37]"
               >
-                이 메시지를 눈앞에서 만나기
+                명패 구매하기
               </button>
             </div>
             <div className="mt-4 rounded-md border border-white/12 bg-black/30 px-4 py-4">
-              <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-white/45">Option 2</p>
-              <p className="mt-2 font-serif text-[1.02rem] text-white/78">아이의 메시지를 계속 받아보기</p>
+              <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-white/55">
+                OPTION 2 — 구독하기
+              </p>
+              <p className="mt-2 font-serif text-[1.02rem] text-white/82">아이의 메시지를 계속 받아보기</p>
               <p className="mt-2 font-sans text-[12px] leading-relaxed text-white/50">
-                매달 편지·사진 앨범·함께한 날 기록·편지 아카이브까지, 구독자 전용 공간에서 이어가요.
+                구독이 완료되면 아래 대시보드에서 매달 편지와 기록을 이어가요.
               </p>
               <p className="mt-2 font-sans text-xs text-[#D4AF37]/85">₩5,900 / 월</p>
               <button
@@ -191,25 +195,31 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade, e
                 onClick={requestSubscriptionConfirm}
                 className="mt-3 w-full border border-white/20 bg-black/35 px-5 py-3.5 font-serif text-[0.98rem] tracking-wide text-white/75 transition hover:border-white/35 hover:bg-black/45"
               >
-                아이의 메시지를 계속 받아보기
+                구독하기
               </button>
             </div>
 
             <div className="mt-5 rounded-md border border-[#D4AF37]/35 bg-gradient-to-b from-[#D4AF37]/10 to-black/50 px-4 py-4">
               <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#D4AF37]/90">
-                구독자 전용
+                구독 완료 후 · 대시보드
               </p>
               <p className="mt-2 font-serif text-[1.05rem] leading-snug text-[#D4AF37]">
-                편지·앨범·기억을 모아 보는 대시보드
+                한곳에서 모두 이어가요
               </p>
-              <p className="mt-2 font-sans text-[12px] leading-relaxed text-white/60">
-                로그인 후 이용합니다. 이메일은 첫 화면 입력값과 함께 연결돼요.
+              <ul className="mt-3 space-y-1.5 border-l border-[#D4AF37]/35 pl-3 font-sans text-[12px] leading-relaxed text-white/65">
+                <li>매달 편지 도착</li>
+                <li>사진 앨범</li>
+                <li>날짜 / 기억 기록</li>
+                <li>편지 아카이브</li>
+              </ul>
+              <p className="mt-3 font-sans text-[11px] leading-relaxed text-white/45">
+                로그인 후 이용 · 이메일은 상단 편지 흐름과 연결됩니다.
               </p>
               <Link
                 to={subscriptionHref}
                 className="mt-4 flex w-full items-center justify-center border border-[#D4AF37]/55 bg-[#D4AF37]/14 px-5 py-3.5 font-serif text-[0.98rem] tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/22"
               >
-                구독자 대시보드 열기 →
+                대시보드 열기 →
               </Link>
             </div>
           </motion.div>
@@ -233,10 +243,10 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade, e
               className="w-full max-w-md border border-[#D4AF37]/30 bg-black/95 px-6 py-6 text-white"
             >
               <h3 className="text-center font-serif text-xl text-[#D4AF37]">
-                아이의 메시지를 계속 받아보시겠어요?
+                구독하고 대시보드로 이어갈까요?
               </h3>
               <p className="mt-5 whitespace-pre-line text-center font-serif text-[1.05rem] leading-relaxed text-white/80">
-                {'하루에 한 번,\n아이의 마음이 도착합니다'}
+                {'결제 후 로그인하면\n편지·앨범·기억·아카이브를 한 화면에서 이어갈 수 있어요'}
               </p>
               <p className="mt-6 text-center font-serif text-2xl text-[#D4AF37]">₩5,900 / 월</p>
               <div className="mt-6 space-y-2">
@@ -245,7 +255,7 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade, e
                   onClick={submitSubscription}
                   className="aurora-button w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 py-3 font-serif text-[#D4AF37]"
                 >
-                  지금 시작하기
+                  구독 진행하기
                 </button>
                 <button
                   type="button"
