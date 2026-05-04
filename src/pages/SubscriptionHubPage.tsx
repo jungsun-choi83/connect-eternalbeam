@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { fetchMe, login, logout, register, type MeResponse } from '../lib/authApi'
-import { SubscriberDashboard } from '../components/subscriber/SubscriberDashboard'
 import { ST_KEY_EMAIL, STORAGE_EMAIL } from '../lib/soulTraceIngest'
 import { startTossTestCheckout } from '../lib/tossCheckout'
 import { devActivateSubscription } from '../lib/subscriberApi'
@@ -184,10 +183,13 @@ export function SubscriptionHubPage() {
     )
   }
 
-  if (!me.subscription.active) {
-    return (
-      <div className="min-h-dvh bg-[#0e0e0c] px-5 pb-16 pt-12 font-sans text-white sm:px-8">
-        <div className="mx-auto w-full max-w-lg text-center">
+  if (me.subscription.active) {
+    return <Navigate to="/subscription/dashboard" replace />
+  }
+
+  return (
+    <div className="min-h-dvh bg-[#0e0e0c] px-5 pb-16 pt-12 font-sans text-white sm:px-8">
+      <div className="mx-auto w-full max-w-lg text-center">
           <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[#D4AF37]/75">Subscriber</p>
           <h1 className="mt-4 font-serif text-2xl text-[#D4AF37] sm:text-3xl">구독으로 이어지는 공간</h1>
           <p className="mt-6 text-sm leading-relaxed text-white/65">
@@ -231,21 +233,10 @@ export function SubscriptionHubPage() {
           >
             다른 계정으로 바꾸기
           </button>
-          <Link to="/" className="mt-6 block text-xs tracking-wide text-white/35 hover:text-white/55">
-            ← 홈으로
-          </Link>
-        </div>
+        <Link to="/" className="mt-6 block text-xs tracking-wide text-white/35 hover:text-white/55">
+          ← 홈으로
+        </Link>
       </div>
-    )
-  }
-
-  return (
-    <SubscriberDashboard
-      userEmail={me.email}
-      onLogout={() => {
-        logout()
-        setMe(null)
-      }}
-    />
+    </div>
   )
 }

@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
-import { Link } from 'react-router-dom'
 import type { SoulTracePayload } from '../lib/soulTraceIngest'
 
 type Props = {
@@ -99,13 +98,8 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade, e
     await onUpgrade?.(email.trim() || '')
   }
 
-  const subscriptionHref =
-    email.trim().length > 0
-      ? `/subscription?email=${encodeURIComponent(email.trim())}`
-      : '/subscription'
-
   return (
-    <main className="aurora-page min-h-dvh overflow-hidden bg-black text-white">
+    <main className="min-h-dvh overflow-hidden bg-[#0e0e0c] text-white">
       <div className="pointer-events-none absolute left-0 right-0 top-5 z-20 flex items-center justify-center gap-2">
         {[0, 1].map((idx) => (
           <span
@@ -127,30 +121,33 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade, e
           transition: 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
-        <section className="flex h-dvh w-full shrink-0 flex-col px-6 pb-8 pt-12 sm:px-10">
-          <motion.div key={`s1-${activeSlide}`} {...fadeIn} className="fade-up flex h-full flex-col">
-            <p className="fade-up text-center font-sans text-[11px] uppercase tracking-[0.34em] text-[#D4AF37]/75">
+        <section className="flex h-dvh w-full shrink-0 flex-col bg-[#0e0e0c] px-4 pb-8 pt-10 sm:px-8 sm:pt-12">
+          <motion.div key={`s1-${activeSlide}`} {...fadeIn} className="fade-up flex h-full min-h-0 flex-col">
+            <p className="eb-main-letter-kicker fade-up px-1">
               {isTagEntry ? '지금, 처음 도착한 이야기' : '소울트레이스에서 도착한 편지'}
             </p>
-            <div className="mt-6 flex-1 overflow-hidden border border-[#D4AF37]/18 bg-black/45 px-5 py-6 sm:px-8 sm:py-8">
-              <p className="h-full overflow-auto whitespace-pre-wrap font-sans text-[15px] leading-[1.95] text-white/86">
+            <div className="eb-main-letter-panel mt-5 flex min-h-0 flex-1 flex-col sm:mt-6">
+              <span className="eb-main-letter-quote" aria-hidden>
+                &#x201C;
+              </span>
+              <p className="eb-main-letter-body h-full min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap">
                 {letter}
               </p>
             </div>
-            <p className="fade-up mt-7 whitespace-pre-line text-center font-serif text-[1.1rem] leading-relaxed text-[#D4AF37]/90">
+            <p className="fade-up mt-6 whitespace-pre-line text-center font-serif text-[1.05rem] leading-[1.75] text-[#D4AF37] sm:mt-8 sm:text-[1.1rem]">
               {'이 편지는 지금 한 번 도착한 메시지입니다\n\n하지만,\n아이의 이야기는 여기서 끝나지 않습니다'}
             </p>
             <button
               type="button"
               onClick={goNext}
-              className="aurora-button mt-auto w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 px-5 py-4 font-serif text-[1.05rem] tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/18"
+              className="eb-main-letter-cta mt-auto w-full px-5 py-4 font-serif text-[1.05rem] tracking-[0.06em]"
             >
               다음
             </button>
           </motion.div>
         </section>
 
-        <section className="flex h-dvh w-full shrink-0 flex-col px-6 pb-8 pt-12 sm:px-10">
+        <section className="flex h-dvh w-full shrink-0 flex-col bg-[#0e0e0c] px-6 pb-8 pt-12 sm:px-10">
           <motion.div key={`s2-${activeSlide}`} {...fadeIn} className="fade-up flex h-full flex-col">
             <p className="fade-up text-center font-serif text-[1rem] text-[#D4AF37]/80">
               아이의 메시지가 빛으로 도착하는 순간
@@ -187,7 +184,7 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade, e
               </p>
               <p className="mt-2 font-serif text-[1.02rem] text-white/82">아이의 메시지를 계속 받아보기</p>
               <p className="mt-2 font-sans text-[12px] leading-relaxed text-white/50">
-                구독이 완료되면 아래 대시보드에서 매달 편지와 기록을 이어가요.
+                구독이 완료되면 전용 공간에서 매달 편지와 기록을 이어가요.
               </p>
               <p className="mt-2 font-sans text-xs text-[#D4AF37]/85">₩5,900 / 월</p>
               <button
@@ -197,30 +194,6 @@ export function MobileEmotionFunnel({ payload, onStartSubscription, onUpgrade, e
               >
                 구독하기
               </button>
-            </div>
-
-            <div className="mt-5 rounded-md border border-[#D4AF37]/35 bg-gradient-to-b from-[#D4AF37]/10 to-black/50 px-4 py-4">
-              <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#D4AF37]/90">
-                구독 완료 후 · 대시보드
-              </p>
-              <p className="mt-2 font-serif text-[1.05rem] leading-snug text-[#D4AF37]">
-                한곳에서 모두 이어가요
-              </p>
-              <ul className="mt-3 space-y-1.5 border-l border-[#D4AF37]/35 pl-3 font-sans text-[12px] leading-relaxed text-white/65">
-                <li>매달 편지 도착</li>
-                <li>사진 앨범</li>
-                <li>날짜 / 기억 기록</li>
-                <li>편지 아카이브</li>
-              </ul>
-              <p className="mt-3 font-sans text-[11px] leading-relaxed text-white/45">
-                로그인 후 이용 · 이메일은 상단 편지 흐름과 연결됩니다.
-              </p>
-              <Link
-                to={subscriptionHref}
-                className="mt-4 flex w-full items-center justify-center border border-[#D4AF37]/55 bg-[#D4AF37]/14 px-5 py-3.5 font-serif text-[0.98rem] tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/22"
-              >
-                대시보드 열기 →
-              </Link>
             </div>
           </motion.div>
         </section>

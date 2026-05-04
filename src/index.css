@@ -350,3 +350,95 @@ body {
   box-shadow: 0 0 22px rgba(212, 175, 55, 0.35);
   pointer-events: none;
 }
+
+/* 메인 퍼널 · 소울트레이스 편지 박스 */
+.eb-main-letter-kicker {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: lowercase;
+  color: rgba(180, 140, 60, 0.92);
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .eb-main-letter-kicker {
+    font-size: 11px;
+  }
+}
+
+.eb-main-letter-panel {
+  position: relative;
+  min-height: 0;
+  border: 0.5px solid rgba(180, 140, 60, 0.3);
+  background: rgba(180, 140, 60, 0.03);
+  padding: 60px 80px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(180, 140, 60, 0.04);
+}
+
+@media (max-width: 1024px) {
+  .eb-main-letter-panel {
+    padding: 48px 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .eb-main-letter-panel {
+    padding: 36px 24px;
+  }
+}
+
+.eb-main-letter-quote {
+  position: absolute;
+  left: 1.25rem;
+  top: 1.75rem;
+  font-family: 'Cormorant Garamond', 'Noto Serif KR', Georgia, serif;
+  font-size: clamp(2.75rem, 10vw, 3.75rem);
+  line-height: 1;
+  color: rgba(180, 140, 60, 0.5);
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (min-width: 1024px) {
+  .eb-main-letter-quote {
+    left: 2.5rem;
+    top: 2.5rem;
+  }
+}
+
+.eb-main-letter-body {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding-top: 3.25rem;
+  font-family: 'Noto Serif KR', serif;
+  font-weight: 300;
+  line-height: 2.2;
+  color: rgba(240, 232, 216, 0.85);
+  font-size: 15px;
+}
+
+@media (min-width: 640px) {
+  .eb-main-letter-body {
+    padding-top: 3.5rem;
+    font-size: 16px;
+  }
+}
+
+.eb-main-letter-cta {
+  border: 0.5px solid rgba(180, 140, 60, 0.5);
+  background: transparent;
+  color: rgba(200, 165, 80, 0.95);
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.eb-main-letter-cta:hover {
+  background: rgba(180, 140, 60, 0.08);
+  border-color: rgba(200, 170, 90, 0.65);
+  color: rgba(220, 195, 120, 0.98);
+}

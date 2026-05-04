@@ -22,6 +22,7 @@ import { RegisterSerialPage } from './pages/RegisterSerialPage'
 import { PlaqueDetailPage } from './pages/PlaqueDetailPage'
 import { SubscriptionEmotionPage } from './pages/SubscriptionEmotionPage'
 import { SubscriptionHubPage } from './pages/SubscriptionHubPage'
+import { SubscriptionDashboardPage } from './pages/SubscriptionDashboardPage'
 import { TossPaymentFailPage } from './pages/TossPaymentFailPage'
 import { TossPaymentSuccessPage } from './pages/TossPaymentSuccessPage'
 
@@ -205,6 +206,7 @@ function App() {
           <Route path="/payments/toss/success" element={<TossPaymentSuccessPage />} />
           <Route path="/payments/toss/fail" element={<TossPaymentFailPage />} />
           <Route path="/subscription" element={<SubscriptionHubPage />} />
+          <Route path="/subscription/dashboard" element={<SubscriptionDashboardPage />} />
           <Route path="/subscription/reply" element={<SubscriptionEmotionPage />} />
         <Route path="/plaque" element={<PlaqueDetailPage />} />
           <Route path="/tools/qr/:deviceSn" element={<QrToolPage />} />
