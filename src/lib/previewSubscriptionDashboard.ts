@@ -43,6 +43,3 @@ export function mockSubscriberDashboardPayload(): SubscriberDashboardPayload {
   }
 }
 
-export function isSubscriptionDashboardPreviewEnabled(): boolean {
-  return import.meta.env.DEV || import.meta.env.VITE_PREVIEW_SUBSCRIPTION_UI === 'true'
-}

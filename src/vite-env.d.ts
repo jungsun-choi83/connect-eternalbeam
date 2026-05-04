@@ -10,8 +10,6 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY?: string
   /** Toss Payments 클라이언트 키 (테스트: test_ck_...) */
   readonly VITE_TOSS_CLIENT_KEY?: string
-  /** true: /subscription/dashboard?preview=1 로 API 없이 대시보드 UI만 표시 (Vercel 테스트용) */
-  readonly VITE_PREVIEW_SUBSCRIPTION_UI?: string
 }
 
 interface ImportMeta {

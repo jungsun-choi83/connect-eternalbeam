@@ -4,10 +4,13 @@ import { fetchMe, login, logout, register, type MeResponse } from '../lib/authAp
 import { ST_KEY_EMAIL, STORAGE_EMAIL } from '../lib/soulTraceIngest'
 import { startTossTestCheckout } from '../lib/tossCheckout'
 import { devActivateSubscription } from '../lib/subscriberApi'
-import { isSubscriptionDashboardPreviewEnabled } from '../lib/previewSubscriptionDashboard'
 
 const showDevSubscription =
   import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_SUBSCRIPTION === 'true'
+
+function looksLikeApiUnavailable(msg: string): boolean {
+  return /fetch|Failed to fetch|network|연결|NAME_NOT_RESOLVED|not resolved|404|405|API 서버/i.test(msg)
+}
 
 export function SubscriptionHubPage() {
   const [params] = useSearchParams()
@@ -171,6 +174,19 @@ export function SubscriptionHubPage() {
               className="mt-1.5 w-full border border-white/15 bg-black/50 px-3 py-2.5 text-sm text-white outline-none focus:border-[#D4AF37]/45"
             />
             {err && <p className="mt-4 text-center text-xs text-red-300/90">{err}</p>}
+            {err && looksLikeApiUnavailable(err) && (
+              <div className="mt-4 rounded-sm border border-[#D4AF37]/25 bg-black/40 px-4 py-3 text-center text-[11px] leading-relaxed text-white/60">
+                <code className="font-mono text-[10px] text-white/35">api.connect.eternalbeam.com</code> 등 API
+                주소가 아직 연결되지 않았을 수 있어요.
+                <br />
+                <Link
+                  to="/subscription/dashboard?preview=1"
+                  className="mt-2 inline-block font-medium text-[#D4AF37] underline-offset-2 hover:underline"
+                >
+                  대시보드 화면만 데모로 보기
+                </Link>
+              </div>
+            )}
             <button
               type="submit"
               disabled={busy}
@@ -186,14 +202,12 @@ export function SubscriptionHubPage() {
           >
             ← 홈으로
           </Link>
-          {isSubscriptionDashboardPreviewEnabled() && (
-            <Link
-              to="/subscription/dashboard?preview=1"
-              className="mt-6 block text-center text-[11px] tracking-wide text-white/40 underline-offset-4 transition hover:text-white/60"
-            >
-              대시보드 화면만 미리보기 (서버·API 없음)
-            </Link>
-          )}
+          <Link
+            to="/subscription/dashboard?preview=1"
+            className="mt-6 block text-center text-[11px] tracking-wide text-[#D4AF37]/70 underline-offset-4 transition hover:text-[#D4AF37]"
+          >
+            API 없이 대시보드 화면만 보기 (테스트)
+          </Link>
         </div>
       </div>
     )
@@ -252,14 +266,12 @@ export function SubscriptionHubPage() {
         <Link to="/" className="mt-6 block text-xs tracking-wide text-white/35 hover:text-white/55">
           ← 홈으로
         </Link>
-        {isSubscriptionDashboardPreviewEnabled() && (
-          <Link
-            to="/subscription/dashboard?preview=1"
-            className="mt-5 block text-center text-[11px] tracking-wide text-white/40 underline-offset-4 transition hover:text-white/60"
-          >
-            대시보드 화면만 미리보기 (서버·API 없음)
-          </Link>
-        )}
+        <Link
+          to="/subscription/dashboard?preview=1"
+          className="mt-5 block text-center text-[11px] tracking-wide text-[#D4AF37]/70 underline-offset-4 transition hover:text-[#D4AF37]"
+        >
+          API 없이 대시보드 화면만 보기 (테스트)
+        </Link>
       </div>
     </div>
   )
