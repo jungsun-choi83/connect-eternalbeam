@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { SubscriberDashboard } from '../components/subscriber/SubscriberDashboard'
 import { fetchMe, logout, type MeResponse } from '../lib/authApi'
+import { isSubscriptionDashboardPreviewEnabled } from '../lib/previewSubscriptionDashboard'
 
 /**
  * 구독 완료·로그인한 구독자만 접근.
@@ -11,10 +12,13 @@ export function SubscriptionDashboardPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const emailHint = params.get('email')?.trim() ?? ''
-  const [booting, setBooting] = useState(true)
+  const previewUi =
+    isSubscriptionDashboardPreviewEnabled() && params.get('preview') === '1'
+  const [booting, setBooting] = useState(() => !previewUi)
   const [me, setMe] = useState<MeResponse | null>(null)
 
   useEffect(() => {
+    if (previewUi) return
     let cancelled = false
     ;(async () => {
       const m = await fetchMe()
@@ -26,7 +30,17 @@ export function SubscriptionDashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [previewUi])
+
+  if (previewUi) {
+    return (
+      <SubscriberDashboard
+        userEmail="preview@demo.eternalbeam.local"
+        previewMode
+        onLogout={() => navigate('/subscription', { replace: true })}
+      />
+    )
+  }
 
   if (booting) {
     return (

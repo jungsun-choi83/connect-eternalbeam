@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { MobileTopBar } from '../layout/MobileShell'
 
 type Props = {
   petName: string | null
@@ -45,13 +46,14 @@ export function TagStartExperience({ petName }: Props) {
   }, [isTransitioning, petName])
 
   return (
-    <main className="aurora-page flex min-h-dvh items-center px-6 py-12 text-white sm:px-10">
-      <section className="mx-auto w-full max-w-xl">
-        <div className="space-y-5 text-center">
+    <main className="flex min-h-dvh flex-col bg-[#0e0e0c] text-white">
+      <MobileTopBar />
+      <section className="mx-auto flex w-full flex-1 flex-col justify-center px-5 py-10 sm:px-8">
+        <div className="mx-auto max-w-md space-y-5 text-center">
           {INTRO_LINES.map((line, idx) => (
             <p
               key={line}
-              className={`whitespace-pre-line font-serif text-[1.45rem] leading-relaxed transition-all duration-700 sm:text-[1.8rem] ${
+              className={`whitespace-pre-line font-serif text-[1.35rem] leading-relaxed text-[rgba(240,232,216,0.9)] transition-all duration-700 sm:text-[1.55rem] ${
                 visibleCount > idx ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
               }`}
             >
@@ -61,11 +63,11 @@ export function TagStartExperience({ petName }: Props) {
         </div>
 
         {visibleCount >= INTRO_LINES.length && (
-          <div className="fade-up mt-12">
+          <div className="fade-up mx-auto mt-12 max-w-md">
             <button
               type="button"
               onClick={() => setMessage(firstMessage)}
-              className="aurora-button w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 px-5 py-4 font-serif text-[1.08rem] tracking-wide text-[#D4AF37]"
+              className="eb-main-letter-cta w-full px-5 py-4 font-serif text-[1.05rem] tracking-wide"
             >
               첫 메시지 받아보기
             </button>
@@ -73,14 +75,16 @@ export function TagStartExperience({ petName }: Props) {
         )}
 
         {message && (
-          <article className="fade-up mt-6 rounded-md border border-[#D4AF37]/25 bg-black/45 px-5 py-6">
-            <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-[#D4AF37]/70">First Message</p>
-            <p className="mt-3 whitespace-pre-line font-sans text-[15px] leading-[1.9] text-white/86">{message}</p>
+          <article className="fade-up mx-auto mt-6 max-w-md rounded-sm border border-[rgba(180,140,60,0.22)] bg-[rgba(255,255,255,0.03)] px-5 py-6">
+            <p className="font-sans text-[10px] uppercase tracking-[0.22em] text-[#c9a227]/75">First Message</p>
+            <p className="mt-3 whitespace-pre-line font-serif text-[15px] font-light leading-[1.95] text-[rgba(240,232,216,0.88)]">
+              {message}
+            </p>
             <button
               type="button"
               onClick={() => setIsTransitioning(true)}
               disabled={isTransitioning}
-              className="aurora-button mt-5 w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 px-5 py-3.5 font-serif text-[1.02rem] tracking-wide text-[#D4AF37] disabled:opacity-70"
+              className="eb-main-letter-cta mt-6 w-full px-5 py-3.5 font-serif text-[1.02rem] tracking-wide disabled:opacity-70"
             >
               다음 이야기 듣기
             </button>
@@ -88,8 +92,8 @@ export function TagStartExperience({ petName }: Props) {
         )}
 
         {isTransitioning && (
-          <div className="fade-up mt-6 rounded-md border border-[#D4AF37]/25 bg-black/55 px-5 py-6 text-center">
-            <p className="whitespace-pre-line font-serif text-[1.22rem] leading-relaxed text-[#D4AF37]">
+          <div className="fade-up mx-auto mt-6 max-w-md rounded-sm border border-[rgba(180,140,60,0.2)] bg-[rgba(0,0,0,0.35)] px-5 py-6 text-center">
+            <p className="whitespace-pre-line font-serif text-[1.12rem] leading-relaxed text-[#c9a227]">
               {'이제,\n이 아이의 이야기가 이어집니다'}
             </p>
           </div>

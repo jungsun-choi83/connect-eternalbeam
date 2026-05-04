@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
+import { MobileAppShell } from './components/layout/MobileAppShell'
 import { LetterSavedConfirmation } from './components/LetterSavedConfirmation'
 import { MobileEmotionFunnel } from './components/MobileEmotionFunnel'
 import { SoftArchivePrompt } from './components/anonymous/SoftArchivePrompt'
@@ -194,22 +195,24 @@ function App() {
       )}
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/main" element={<Landing />} />
-          <Route path="/connect/:id" element={<Landing />} />
           <Route path="/display/:deviceSn" element={<DisplayPage />} />
-          <Route path="/register/:serial" element={<RegisterSerialPage />} />
-          <Route path="/register-device" element={<RegisterDevicePage />} />
-          <Route path="/demo/letter" element={<LetterResultDemoPage />} />
-          <Route path="/oauth/google/callback" element={<OAuthGoogleCallbackPage />} />
-          <Route path="/oauth/kakao/callback" element={<OAuthKakaoCallbackPage />} />
-          <Route path="/payments/toss/success" element={<TossPaymentSuccessPage />} />
-          <Route path="/payments/toss/fail" element={<TossPaymentFailPage />} />
-          <Route path="/subscription" element={<SubscriptionHubPage />} />
-          <Route path="/subscription/dashboard" element={<SubscriptionDashboardPage />} />
-          <Route path="/subscription/reply" element={<SubscriptionEmotionPage />} />
-        <Route path="/plaque" element={<PlaqueDetailPage />} />
-          <Route path="/tools/qr/:deviceSn" element={<QrToolPage />} />
+          <Route path="/" element={<MobileAppShell />}>
+            <Route index element={<Landing />} />
+            <Route path="main" element={<Landing />} />
+            <Route path="connect/:id" element={<Landing />} />
+            <Route path="register/:serial" element={<RegisterSerialPage />} />
+            <Route path="register-device" element={<RegisterDevicePage />} />
+            <Route path="demo/letter" element={<LetterResultDemoPage />} />
+            <Route path="oauth/google/callback" element={<OAuthGoogleCallbackPage />} />
+            <Route path="oauth/kakao/callback" element={<OAuthKakaoCallbackPage />} />
+            <Route path="payments/toss/success" element={<TossPaymentSuccessPage />} />
+            <Route path="payments/toss/fail" element={<TossPaymentFailPage />} />
+            <Route path="subscription" element={<SubscriptionHubPage />} />
+            <Route path="subscription/dashboard" element={<SubscriptionDashboardPage />} />
+            <Route path="subscription/reply" element={<SubscriptionEmotionPage />} />
+            <Route path="plaque" element={<PlaqueDetailPage />} />
+            <Route path="tools/qr/:deviceSn" element={<QrToolPage />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </>

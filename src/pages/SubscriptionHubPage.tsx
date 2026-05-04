@@ -4,6 +4,7 @@ import { fetchMe, login, logout, register, type MeResponse } from '../lib/authAp
 import { ST_KEY_EMAIL, STORAGE_EMAIL } from '../lib/soulTraceIngest'
 import { startTossTestCheckout } from '../lib/tossCheckout'
 import { devActivateSubscription } from '../lib/subscriberApi'
+import { isSubscriptionDashboardPreviewEnabled } from '../lib/previewSubscriptionDashboard'
 
 const showDevSubscription =
   import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_SUBSCRIPTION === 'true'
@@ -121,7 +122,13 @@ export function SubscriptionHubPage() {
             아이의 편지와 기록을 모두 모아 볼 수 있어요.
           </p>
 
-          <div className="mt-10 border border-[#D4AF37]/25 bg-black/35 px-6 py-8">
+          <form
+            className="mt-10 border border-[#D4AF37]/25 bg-black/35 px-6 py-8"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void onSubmitAuth()
+            }}
+          >
             <div className="flex gap-2 border border-white/10 p-0.5">
               <button
                 type="button"
@@ -145,6 +152,7 @@ export function SubscriptionHubPage() {
             <label className="mt-6 block text-[11px] tracking-wide text-white/45">이메일</label>
             <input
               type="email"
+              name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
@@ -156,6 +164,7 @@ export function SubscriptionHubPage() {
             </label>
             <input
               type="password"
+              name="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
@@ -163,14 +172,13 @@ export function SubscriptionHubPage() {
             />
             {err && <p className="mt-4 text-center text-xs text-red-300/90">{err}</p>}
             <button
-              type="button"
-              onClick={() => void onSubmitAuth()}
+              type="submit"
               disabled={busy}
               className="mt-6 w-full border border-[#D4AF37]/45 bg-[#D4AF37]/12 py-3.5 font-serif text-sm tracking-wide text-[#D4AF37] transition hover:bg-[#D4AF37]/18 disabled:opacity-60"
             >
               {busy ? '처리 중…' : mode === 'register' ? '가입하고 계속하기' : '로그인'}
             </button>
-          </div>
+          </form>
 
           <Link
             to="/"
@@ -178,6 +186,14 @@ export function SubscriptionHubPage() {
           >
             ← 홈으로
           </Link>
+          {isSubscriptionDashboardPreviewEnabled() && (
+            <Link
+              to="/subscription/dashboard?preview=1"
+              className="mt-6 block text-center text-[11px] tracking-wide text-white/40 underline-offset-4 transition hover:text-white/60"
+            >
+              대시보드 화면만 미리보기 (서버·API 없음)
+            </Link>
+          )}
         </div>
       </div>
     )
@@ -236,6 +252,14 @@ export function SubscriptionHubPage() {
         <Link to="/" className="mt-6 block text-xs tracking-wide text-white/35 hover:text-white/55">
           ← 홈으로
         </Link>
+        {isSubscriptionDashboardPreviewEnabled() && (
+          <Link
+            to="/subscription/dashboard?preview=1"
+            className="mt-5 block text-center text-[11px] tracking-wide text-white/40 underline-offset-4 transition hover:text-white/60"
+          >
+            대시보드 화면만 미리보기 (서버·API 없음)
+          </Link>
+        )}
       </div>
     </div>
   )

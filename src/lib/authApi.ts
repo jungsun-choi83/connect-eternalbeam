@@ -3,6 +3,18 @@ import { clearAuthToken, getAuthToken, setAuthToken } from './authStorage'
 
 const base = () => getApiBase()
 
+async function apiJsonMessage(res: Response, fallback: string): Promise<string> {
+  const ct = res.headers.get('content-type') ?? ''
+  if (res.status === 405 || res.status === 404) {
+    return 'API 서버에 연결되지 않았습니다. 배포 환경에 VITE_API_BASE(Express API URL)가 올바른지 확인해 주세요.'
+  }
+  if (!ct.includes('application/json')) {
+    return `${fallback} (${res.status})`
+  }
+  const j = (await res.json().catch(() => ({}))) as { error?: string }
+  return j.error || `${fallback} (${res.status})`
+}
+
 export type AuthUser = { id: string; email: string }
 
 export type SubscriptionState = { active: boolean; since: number | null }
@@ -108,8 +120,7 @@ export async function register(email: string, password: string): Promise<{ token
     body: JSON.stringify({ email, password }),
   })
   if (!res.ok) {
-    const j = (await res.json().catch(() => ({}))) as { error?: string }
-    throw new Error(j.error || `가입 실패 (${res.status})`)
+    throw new Error(await apiJsonMessage(res, '가입 실패'))
   }
   const data = (await res.json()) as { token: string; user: AuthUser }
   setAuthToken(data.token)
@@ -123,8 +134,7 @@ export async function login(email: string, password: string): Promise<{ token: s
     body: JSON.stringify({ email, password }),
   })
   if (!res.ok) {
-    const j = (await res.json().catch(() => ({}))) as { error?: string }
-    throw new Error(j.error || `로그인 실패 (${res.status})`)
+    throw new Error(await apiJsonMessage(res, '로그인 실패'))
   }
   const data = (await res.json()) as { token: string; user: AuthUser }
   setAuthToken(data.token)

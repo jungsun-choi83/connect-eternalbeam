@@ -20,12 +20,9 @@ body {
   color: #ffffff;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  background-color: #030201;
-  background-image:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(212, 175, 55, 0.07), transparent 50%),
-    radial-gradient(ellipse 80% 50% at 80% 60%, rgba(90, 70, 110, 0.06), transparent 45%),
-    radial-gradient(ellipse 60% 40% at 10% 80%, rgba(60, 45, 35, 0.12), transparent 50%),
-    linear-gradient(180deg, #0c0a08 0%, #000000 38%, #050403 100%);
+  /* 모바일 웹앱 컬럼 바깥 여백 */
+  background-color: #050504;
+  background-image: linear-gradient(180deg, #080706 0%, #050504 100%);
   background-attachment: fixed;
 }
 
@@ -77,6 +74,19 @@ body {
 
 #root {
   min-height: 100dvh;
+}
+
+/* 대부분의 사용자 화면 — 최대 430px 카카오톡·온보딩형 컬럼 */
+.mobile-app-shell {
+  margin: 0 auto;
+  max-width: 430px;
+  min-height: 100dvh;
+  min-height: 100vh;
+  background: #0e0e0c;
+  position: relative;
+  box-shadow:
+    -40px 0 64px -40px rgba(0, 0, 0, 0.55),
+    40px 0 64px -40px rgba(0, 0, 0, 0.55);
 }
 
 @keyframes mist-drift {
@@ -370,49 +380,36 @@ body {
 .eb-main-letter-panel {
   position: relative;
   min-height: 0;
-  border: 0.5px solid rgba(180, 140, 60, 0.3);
-  background: rgba(180, 140, 60, 0.03);
-  padding: 60px 80px;
-  border-radius: 2px;
-  box-shadow: inset 0 0 0 1px rgba(180, 140, 60, 0.04);
+  border: 0.5px solid rgba(180, 140, 60, 0.25);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 56px 22px 28px;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-@media (max-width: 1024px) {
+@media (min-width: 400px) {
   .eb-main-letter-panel {
-    padding: 48px 40px;
-  }
-}
-
-@media (max-width: 640px) {
-  .eb-main-letter-panel {
-    padding: 36px 24px;
+    padding: 58px 28px 32px;
   }
 }
 
 .eb-main-letter-quote {
   position: absolute;
-  left: 1.25rem;
-  top: 1.75rem;
+  left: 1rem;
+  top: 1.35rem;
   font-family: 'Cormorant Garamond', 'Noto Serif KR', Georgia, serif;
-  font-size: clamp(2.75rem, 10vw, 3.75rem);
+  font-size: clamp(2.25rem, 9vw, 3.25rem);
   line-height: 1;
-  color: rgba(180, 140, 60, 0.5);
+  color: rgba(180, 140, 60, 0.48);
   pointer-events: none;
   user-select: none;
-}
-
-@media (min-width: 1024px) {
-  .eb-main-letter-quote {
-    left: 2.5rem;
-    top: 2.5rem;
-  }
 }
 
 .eb-main-letter-body {
   position: relative;
   z-index: 1;
   margin: 0;
-  padding-top: 3.25rem;
+  padding-top: 2.75rem;
   font-family: 'Noto Serif KR', serif;
   font-weight: 300;
   line-height: 2.2;
@@ -420,25 +417,74 @@ body {
   font-size: 15px;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 400px) {
   .eb-main-letter-body {
-    padding-top: 3.5rem;
     font-size: 16px;
+    padding-top: 3rem;
   }
 }
 
+/* 하단 고정형 프라이머리 CTA — 골드 필 */
 .eb-main-letter-cta {
-  border: 0.5px solid rgba(180, 140, 60, 0.5);
-  background: transparent;
-  color: rgba(200, 165, 80, 0.95);
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  cursor: pointer;
+  border: none;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #d4af37 0%, #b8942a 48%, #9a7a22 100%);
+  color: #0e0e0c;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 8px 24px rgba(0, 0, 0, 0.35);
   transition:
-    background 0.25s ease,
-    border-color 0.25s ease,
-    color 0.25s ease;
+    transform 0.2s ease,
+    filter 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .eb-main-letter-cta:hover {
-  background: rgba(180, 140, 60, 0.08);
-  border-color: rgba(200, 170, 90, 0.65);
-  color: rgba(220, 195, 120, 0.98);
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 10px 28px rgba(0, 0, 0, 0.4);
+}
+
+.eb-main-letter-cta:active {
+  transform: scale(0.988);
+}
+
+.eb-option-secondary {
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 0.5px solid rgba(180, 140, 60, 0.35);
+  background: rgba(212, 175, 55, 0.08);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.eb-option-secondary:hover {
+  background: rgba(212, 175, 55, 0.14);
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+.eb-option-ghost {
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.eb-option-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.eb-modal-sheet {
+  border-radius: 14px 14px 4px 4px;
 }

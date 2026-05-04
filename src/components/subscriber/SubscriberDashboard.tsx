@@ -11,6 +11,7 @@ import {
   type SubscriberDashboardPayload,
   type SubscriberPhoto,
 } from '../../lib/subscriberApi'
+import { mockSubscriberDashboardPayload } from '../../lib/previewSubscriptionDashboard'
 
 type Tab = 'letters' | 'album' | 'memories' | 'archive'
 
@@ -46,9 +47,11 @@ function formatIsoDots(iso: string): string {
 type Props = {
   userEmail: string
   onLogout: () => void
+  /** API 호출 없이 화면만 (저장·업로드 비활성) */
+  previewMode?: boolean
 }
 
-export function SubscriberDashboard({ userEmail, onLogout }: Props) {
+export function SubscriberDashboard({ userEmail, onLogout, previewMode = false }: Props) {
   const [tab, setTab] = useState<Tab>('letters')
   const [data, setData] = useState<SubscriberDashboardPayload | null>(null)
   const [loadErr, setLoadErr] = useState<string | null>(null)
@@ -76,6 +79,14 @@ export function SubscriberDashboard({ userEmail, onLogout }: Props) {
 
   const load = useCallback(async () => {
     setLoadErr(null)
+    if (previewMode) {
+      const d = mockSubscriberDashboardPayload()
+      setData(d)
+      setNameDraft(d.child_name)
+      etaRef.current =
+        d.next_letter_eta_ms != null ? { at: Date.now(), ms: d.next_letter_eta_ms } : null
+      return
+    }
     try {
       const d = await fetchSubscriberDashboard()
       setData(d)
@@ -85,7 +96,7 @@ export function SubscriberDashboard({ userEmail, onLogout }: Props) {
     } catch (e) {
       setLoadErr(e instanceof Error ? e.message : '불러오지 못했습니다.')
     }
-  }, [])
+  }, [previewMode])
 
   useEffect(() => {
     void load()
@@ -114,6 +125,10 @@ export function SubscriberDashboard({ userEmail, onLogout }: Props) {
   }, [data])
 
   const saveName = async () => {
+    if (previewMode) {
+      window.alert('미리보기 모드에서는 저장되지 않습니다.')
+      return
+    }
     setBusy(true)
     try {
       await patchSubscriberProfile({ child_name: nameDraft.trim() || '우리 아이' })
@@ -135,6 +150,10 @@ export function SubscriberDashboard({ userEmail, onLogout }: Props) {
         const dataUrl = String(reader.result || '')
         if (dataUrl.length > 2_200_000) {
           window.alert('이미지가 너무 큽니다. 더 작은 사진을 선택해 주세요.')
+          return
+        }
+        if (previewMode) {
+          window.alert('미리보기 모드에서는 업로드되지 않습니다.')
           return
         }
         setBusy(true)
@@ -162,6 +181,10 @@ export function SubscriberDashboard({ userEmail, onLogout }: Props) {
           window.alert('이미지가 너무 큽니다.')
           return
         }
+        if (previewMode) {
+          window.alert('미리보기 모드에서는 저장되지 않습니다.')
+          return
+        }
         setBusy(true)
         try {
           await patchSubscriberProfile({ profile_photo: dataUrl })
@@ -177,6 +200,10 @@ export function SubscriberDashboard({ userEmail, onLogout }: Props) {
   }
 
   const submitMemory = async () => {
+    if (previewMode) {
+      window.alert('미리보기 모드에서는 저장되지 않습니다.')
+      return
+    }
     if (!memoryText.trim()) {
       window.alert('기억을 입력해 주세요.')
       return
@@ -221,6 +248,11 @@ export function SubscriberDashboard({ userEmail, onLogout }: Props) {
   return (
     <div className="min-h-dvh bg-[#0e0e0c] pb-28 pt-6 font-sans text-white sm:pb-12 sm:pt-10">
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
+        {previewMode && (
+          <div className="mb-6 rounded-sm border border-amber-500/35 bg-amber-950/40 px-4 py-3 text-center text-xs leading-relaxed text-amber-100/90">
+            UI 미리보기 — API·서버 없이 샘플 데이터만 표시합니다. 저장·업로드는 동작하지 않습니다.
+          </div>
+        )}
         <header className="flex flex-col gap-5 border-b border-[#D4AF37]/20 pb-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <label className="group relative h-[72px] w-[72px] shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-[#D4AF37]/50 bg-black/50 shadow-[0_0_24px_rgba(212,175,55,0.12)] sm:h-[88px] sm:w-[88px]">
@@ -335,6 +367,10 @@ export function SubscriberDashboard({ userEmail, onLogout }: Props) {
               onPick={(files) => onPickPhoto(files)}
               onOpen={(p) => setLightbox(p)}
               onDelete={async (id) => {
+                if (previewMode) {
+                  window.alert('미리보기 모드에서는 삭제되지 않습니다.')
+                  return
+                }
                 if (!window.confirm('이 사진을 삭제할까요?')) return
                 setBusy(true)
                 try {
@@ -358,6 +394,10 @@ export function SubscriberDashboard({ userEmail, onLogout }: Props) {
               busy={busy}
               onSubmit={() => void submitMemory()}
               onDelete={async (id) => {
+                if (previewMode) {
+                  window.alert('미리보기 모드에서는 삭제되지 않습니다.')
+                  return
+                }
                 if (!window.confirm('이 기록을 삭제할까요?')) return
                 setBusy(true)
                 try {
